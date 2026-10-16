@@ -1,0 +1,83 @@
+<Project>
+
+	<Import Project="$(MSBuildThisFileDirectory)/../Directory.Build.props"
+			Condition="Exists('$(MSBuildThisFileDirectory)/../Directory.Build.props')"/>
+
+	<PropertyGroup>
+		<Authors>aweXpect</Authors>
+		<Description>Snapshot testing for aweXpect.</Description>
+		<Copyright>Copyright (c) 2026 - $([System.DateTime]::Now.ToString('yyyy')) Valentin Breuß</Copyright>
+		<RepositoryUrl>https://github.com/Testably/aweXpect.Snapshots.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageProjectUrl>https://docs.testably.org/Extensions/aweXpect.Snapshots</PackageProjectUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageIcon>Docs/logo.png</PackageIcon>
+		<PackageReadmeFile>Docs/README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<NoWarn>$(NoWarn);1701;1702;NU5104</NoWarn>
+		<WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<Nullable>annotations</Nullable>
+	</PropertyGroup>
+
+	<!--
+	    The library can be trimmed and published with Native AOT. The analyzers of .NET 8 predate feature guards and
+	    would report guarded reflection, so only the newer analyzers verify the shared code.
+	-->
+	<PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+		<IsTrimmable>true</IsTrimmable>
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+		<EnableAotAnalyzer>false</EnableAotAnalyzer>
+		<EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Nullable">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="IsExternalInit">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="$([MSBuild]::GetPathOfFileAbove('logo.png', '$(MSBuildThisFileDirectory)../Docs/'))"
+			  Pack="true"
+			  PackagePath="/Docs/"
+			  Link="\Docs\logo.png"/>
+		<None Include="$(SolutionDir)/Artifacts/README.md"
+			  Condition="Exists('$(SolutionDir)/Artifacts/README.md')"
+			  Pack="true"
+			  PackagePath="/Docs/"
+			  Link="Docs\README.md"/>
+		<None Include="$(SolutionDir)/README.md"
+			  Condition="!Exists('$(SolutionDir)/Artifacts/README.md')"
+			  Pack="true"
+			  PackagePath="/Docs/"
+			  Link="Docs\README.md"/>
+	</ItemGroup>
+
+</Project>
