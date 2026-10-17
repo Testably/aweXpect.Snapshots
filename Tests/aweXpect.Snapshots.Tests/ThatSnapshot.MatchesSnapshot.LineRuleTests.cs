@@ -460,7 +460,7 @@ public sealed partial class ThatSnapshot
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
 				using CustomizationLifetime ignorings = Customize.aweXpect.Snapshots().Ignorings.Set([
 					SnapshotIgnoring.LinesContaining("BUILD DATE").IgnoringCase(),
-					SnapshotIgnoring.Lines(line => line.StartsWith("#", StringComparison.Ordinal)),
+					SnapshotIgnoring.Lines(line => line.Length > 0 && line[0] == '#'),
 				]);
 				string subject = "Build date: 2026-10-17\n# AC/DC\nBack in Black\nelapsed 3 ms\nHighway to Hell";
 
