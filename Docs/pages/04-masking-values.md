@@ -22,17 +22,30 @@ await Expect.That(log).MatchesSnapshot()
 
 ## Overview
 
-| Selection                                   | Filters                                                                                                     | `Ignore()` | `Mask()`                       | `Mask("…")` | `Convert(…)`          | `Keep()` |
-|---------------------------------------------|-------------------------------------------------------------------------------------------------------------|:----------:|--------------------------------|:-----------:|-----------------------|:--------:|
-| `.For.Members()`                            | `WithName`, `WithPath`, `OfType<T>`, `OfExactType<T>`, `DeclaredIn<T>`, `Which`, `Except`                    |     ✅      | `{Id_1}`, `{Guid_1}`           |      ✅      | ✅ typed by `OfType<T>` |    –     |
-| `.For.Members().WhichAreEmptyCollections()` | the filters of `Members()` before it                                                                        |     ✅      | –                              |      –      | –                     |    –     |
-| `.For.Values()`                             | like `Members()`, without `WhichAreEmptyCollections`                                                        |     ✅      | `{Id_1}`, `{Guid_1}`, `{Item_1}` |      ✅      | ✅ typed by `OfType<T>` |    –     |
-| `.For.Lines()`                              | `Containing(text)`, `Which`, `Except`                                                                       |     ✅      | –                              |  ✅ the line |  ✅ `string → string?`  |    –     |
-| `.For.Text(text)`                           | `IgnoringCase()`, `AsWildcard()`, `AsRegex()`                                                               |     –      | –                              |      ✅      | –                     |    –     |
-| `.For.Regex(regex)`                         | –                                                                                                           |     –      | –                              |      ✅      | –                     |    –     |
-| `.For.Guids()`, `.For.Dates()`              | –                                                                                                           |     –      | `{Guid_1}`, `{Date_1}`         |      ✅      | –                     |    –     |
-| `.For.MachineName()`, `.For.UserName()`     | –                                                                                                           |     –      | `{MachineName}`, `{UserName}`  |      ✅      | –                     |    –     |
-| `.For.Paths()`                              | –                                                                                                           |     –      | –                              |      –      | –                     |    ✅     |
+The selections and their filters:
+
+| Selection                                                | Filters                                                                                 |
+|----------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `.For.Members()`                                         | `WithName`, `WithPath`, `OfType<T>`, `OfExactType<T>`, `DeclaredIn<T>`, `Which`, `Except` |
+| `.For.Members().WhichAreEmptyCollections()`              | the filters of `Members()` before it                                                    |
+| `.For.Values()`                                          | like `Members()`, without `WhichAreEmptyCollections`                                    |
+| `.For.Lines()`                                           | `Containing(text)`, `Which`, `Except`                                                   |
+| `.For.Text(text)`                                        | `IgnoringCase()`, `AsWildcard()`, `AsRegex()`                                           |
+| `.For.Regex(regex)`, `.For.Guids()`, `.For.Dates()`      | –                                                                                       |
+| `.For.MachineName()`, `.For.UserName()`, `.For.Paths()`  | –                                                                                       |
+
+The actions that each selection offers:
+
+| Selection                       | `Ignore()` | `Mask()`                         | `Mask("…")` | `Convert(…)`            | `Keep()` |
+|---------------------------------|:----------:|----------------------------------|:-----------:|-------------------------|:--------:|
+| `Members()`                     |     ✅      | `{Id_1}`, `{Guid_1}`             |      ✅      | ✅ typed by `OfType<T>`  |    –     |
+| `WhichAreEmptyCollections()`    |     ✅      | –                                |      –      | –                       |    –     |
+| `Values()`                      |     ✅      | `{Id_1}`, `{Guid_1}`, `{Item_1}` |      ✅      | ✅ typed by `OfType<T>`  |    –     |
+| `Lines()`                       |     ✅      | –                                | ✅ the line  | ✅ `string → string?`    |    –     |
+| `Text(text)`, `Regex(regex)`    |     –      | –                                |      ✅      | –                       |    –     |
+| `Guids()`, `Dates()`            |     –      | `{Guid_1}`, `{Date_1}`           |      ✅      | –                       |    –     |
+| `MachineName()`, `UserName()`   |     –      | `{MachineName}`, `{UserName}`    |      ✅      | –                       |    –     |
+| `Paths()`                       |     –      | –                                |      –      | –                       |    ✅     |
 
 A selection only offers the actions that fit it, so e.g. `.For.Paths().Mask()` or `.For.Text("…").Ignore()` does not
 compile. The filters are combined, so a value has to match all of them. After the action, the next rule starts with
