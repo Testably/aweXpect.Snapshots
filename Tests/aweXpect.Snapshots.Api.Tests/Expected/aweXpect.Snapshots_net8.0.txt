@@ -69,6 +69,7 @@ namespace aweXpect.Snapshots
     }
     public sealed class SnapshotComparisonContext
     {
+        public SnapshotComparisonContext(aweXpect.Snapshots.SnapshotId id, aweXpect.Snapshots.SnapshotContent snapshot, aweXpect.Snapshots.SnapshotContent actual) { }
         public aweXpect.Snapshots.SnapshotContent Actual { get; }
         public aweXpect.Snapshots.SnapshotId Id { get; }
         public aweXpect.Snapshots.SnapshotContent Snapshot { get; }
@@ -78,6 +79,8 @@ namespace aweXpect.Snapshots
         public byte[] Bytes { get; }
         public bool IsText { get; }
         public string? Text { get; }
+        public static aweXpect.Snapshots.SnapshotContent FromBytes(byte[] bytes) { }
+        public static aweXpect.Snapshots.SnapshotContent FromText(string text) { }
     }
     public sealed class SnapshotEmptyCollections<TReturn>
     {

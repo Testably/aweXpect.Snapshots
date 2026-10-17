@@ -5,11 +5,16 @@ namespace aweXpect.Snapshots;
 /// </summary>
 public sealed class SnapshotComparisonContext
 {
-	internal SnapshotComparisonContext(SnapshotId id, SnapshotContent snapshot, SnapshotContent actual)
+	/// <summary>
+	///     Initializes the comparison of the <paramref name="actual" /> value with the <paramref name="snapshot" />, e.g. to
+	///     test a <see cref="SnapshotComparer" /> with contents from <see cref="SnapshotContent.FromText" /> or
+	///     <see cref="SnapshotContent.FromBytes" />.
+	/// </summary>
+	public SnapshotComparisonContext(SnapshotId id, SnapshotContent snapshot, SnapshotContent actual)
 	{
-		Id = id;
-		Snapshot = snapshot;
-		Actual = actual;
+		Id = RuleArguments.ThrowIfNull(id, nameof(id));
+		Snapshot = RuleArguments.ThrowIfNull(snapshot, nameof(snapshot));
+		Actual = RuleArguments.ThrowIfNull(actual, nameof(actual));
 	}
 
 	/// <summary>
