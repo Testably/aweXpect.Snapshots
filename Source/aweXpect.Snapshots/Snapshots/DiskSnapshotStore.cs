@@ -216,9 +216,10 @@ internal sealed class DiskSnapshotStore : SnapshotStore
 			.ToList();
 		int variantStart = baseName.IndexOf(SnapshotEnvironment.Separator);
 		string withoutVariant = variantStart < 0 ? baseName : baseName.Substring(0, variantStart);
-		if (testFiles.Count == 0 && withoutVariant.LastIndexOf('.') > 0)
+		string testClass = Path.GetFileNameWithoutExtension(withoutVariant);
+		if (testFiles.Count == 0 && testClass.Length > 0 && testClass != withoutVariant)
 		{
-			testFiles.Add(Path.Combine(directory, Path.ChangeExtension(withoutVariant, ".cs")));
+			testFiles.Add(Path.Combine(directory, testClass + ".cs"));
 		}
 
 		SnapshotId[] candidates = testFiles
