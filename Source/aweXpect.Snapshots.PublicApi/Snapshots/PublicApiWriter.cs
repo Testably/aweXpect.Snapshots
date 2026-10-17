@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -7,7 +9,6 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using SymbolDisplayFormat = Microsoft.CodeAnalysis.SymbolDisplayFormat;
@@ -94,7 +95,12 @@ public static class PublicApiWriter
 		"System.Reflection.AssemblyTitleAttribute",
 	];
 
-	private static readonly Regex AttributeSuffix = new(@"Attribute(?=\(|$)", RegexOptions.Compiled);
+	/// <summary>
+	///     The references of the files that were read, which are <see langword="null" /> for native files, so that each
+	///     file is read only once per process.
+	/// </summary>
+	private static readonly ConcurrentDictionary<string, MetadataReference?> References =
+		new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
 	///     Writes the public API of the <paramref name="assembly" />, which must be loaded from a file.
@@ -155,27 +161,22 @@ public static class PublicApiWriter
 	/// </remarks>
 	private static IEnumerable<MetadataReference> GetReferences(string assemblyFile, string? referencePack)
 	{
-		HashSet<string> names = new(StringComparer.OrdinalIgnoreCase)
-		{
-			Path.GetFileName(assemblyFile),
-		};
+		string assemblyName = Path.GetFileName(assemblyFile);
 		string runtimeDirectory = RuntimeEnvironment.GetRuntimeDirectory();
 		string[] frameworkDirectories = referencePack is null
 			? [runtimeDirectory, Path.Combine(runtimeDirectory, "Facades"),]
 			: [referencePack,];
-		foreach (string directory in new[]
-		         {
-			         Path.GetDirectoryName(assemblyFile)!, AppDomain.CurrentDomain.BaseDirectory,
-		         }.Concat(frameworkDirectories).Where(Directory.Exists))
-		{
-			foreach (string file in Directory.EnumerateFiles(directory, "*.dll"))
+		return new[]
 			{
-				if (names.Add(Path.GetFileName(file)) && IsManagedAssembly(file))
-				{
-					yield return MetadataReference.CreateFromFile(file);
-				}
-			}
-		}
+				Path.GetDirectoryName(assemblyFile)!, AppDomain.CurrentDomain.BaseDirectory,
+			}.Concat(frameworkDirectories)
+			.Where(Directory.Exists)
+			.SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll"))
+			.Where(file => !string.Equals(Path.GetFileName(file), assemblyName, StringComparison.OrdinalIgnoreCase))
+			.GroupBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+			.Select(files => References.GetOrAdd(files.First(), file
+				=> IsManagedAssembly(file) ? MetadataReference.CreateFromFile(file) : null))
+			.OfType<MetadataReference>();
 	}
 
 	/// <summary>
@@ -271,10 +272,17 @@ public static class PublicApiWriter
 		{
 			IMethodSymbol invoke = type.DelegateInvokeMethod!;
 			sb.Append(AccessibilityKeyword(type)).Append(" delegate ")
+				.Append(invoke.RefKind switch
+				{
+					RefKind.Ref => "ref ",
+					RefKind.RefReadOnly => "ref readonly ",
+					_ => "",
+				})
 				.Append(invoke.ReturnType.ToDisplayString(
 					MemberFormat.RemoveGenericsOptions(SymbolDisplayGenericsOptions.IncludeVariance))).Append(' ')
 				.Append(type.ToDisplayString(TypeNameFormat)).Append(TypeParameterList(type.TypeParameters))
-				.Append('(').Append(string.Join(", ", invoke.Parameters.Select(Parameter))).Append(')')
+				.Append('(').Append(string.Join(", ", invoke.Parameters.Select(parameter => Parameter(parameter, false))))
+				.Append(')')
 				.Append(Constraints(type.TypeParameters)).Append(";\n");
 			return;
 		}
@@ -288,17 +296,19 @@ public static class PublicApiWriter
 				         .OrderBy(field => Convert.ToDecimal(field.ConstantValue)))
 			{
 				WriteAttributes(sb, field, memberIndent);
-				sb.Append(memberIndent).Append(field.Name).Append(" = ").Append(field.ConstantValue).Append(",\n");
+				sb.Append(memberIndent).Append(field.Name).Append(" = ")
+					.Append(Convert.ToString(field.ConstantValue, CultureInfo.InvariantCulture)).Append(",\n");
 			}
 		}
 		else
 		{
 			WriteMembers(sb, type, memberIndent);
-			foreach (INamedTypeSymbol extension in type.GetTypeMembers().Where(nested => nested.IsExtension)
+			foreach (INamedTypeSymbol extension in type.GetTypeMembers()
+				         .Where(nested => nested.IsExtension && nested.GetMembers().Any(IsVisible))
 				         .OrderBy(nested => nested.ExtensionParameter?.ToDisplayString(MemberFormat), StringComparer.Ordinal))
 			{
 				sb.Append(memberIndent).Append("extension").Append(TypeParameterList(extension.TypeParameters))
-					.Append('(').Append(extension.ExtensionParameter!.ToDisplayString(MemberFormat)).Append(')')
+					.Append('(').Append(Parameter(extension.ExtensionParameter!, false)).Append(')')
 					.Append(Constraints(extension.TypeParameters)).Append('\n');
 				sb.Append(memberIndent).Append("{\n");
 				WriteMembers(sb, extension, memberIndent + Indentation);
@@ -340,8 +350,8 @@ public static class PublicApiWriter
 			                          !extensionImplementations.Contains(member.OriginalDefinition))
 			         .Where(member => member is not IMethodSymbol
 			         {
-				         MethodKind: MethodKind.Constructor, Parameters.Length: 0,
-			         } || !type.IsValueType)
+				         MethodKind: MethodKind.Constructor, IsImplicitlyDeclared: true,
+			         })
 			         .Select(member => (Member: member, Declaration: Declaration(member)))
 			         .OrderBy(member => Rank(member.Member))
 			         .ThenBy(member => member.Member.IsStatic)
@@ -353,15 +363,47 @@ public static class PublicApiWriter
 		}
 	}
 
-	private static string Declaration(ISymbol member) => member switch
+	private static string Declaration(ISymbol member) => InterfaceModifiers(member) + member switch
 	{
-		IMethodSymbol method => MethodHeader(method) + (method.IsExtensionMethod ? "(this " : "(") +
-		                        string.Join(", ", method.Parameters.Select(Parameter)) + ")" +
+		IMethodSymbol method => MethodHeader(method) + "(" +
+		                        string.Join(", ", method.Parameters.Select((parameter, index)
+			                        => Parameter(parameter, index == 0 && method.IsExtensionMethod))) + ")" +
 		                        Constraints(method.TypeParameters) + (method.IsAbstract ? ";" : " { }"),
+		IPropertySymbol property => Property(property),
 		IEventSymbol => member.ToDisplayString(EventFormat) + ";",
 		IFieldSymbol => member.ToDisplayString(MemberFormat) + ";",
 		_ => member.ToDisplayString(MemberFormat),
 	};
+
+	/// <summary>
+	///     The display omits the modifiers of interface members.
+	/// </summary>
+	private static string InterfaceModifiers(ISymbol member)
+		=> member.ContainingType.TypeKind != TypeKind.Interface || !member.IsStatic
+			? ""
+			: member.IsAbstract
+				? "static abstract "
+				: member.IsVirtual
+					? "static virtual "
+					: "static ";
+
+	/// <summary>
+	///     The display does not include the attributes of the accessors, which are inserted before their keywords.
+	/// </summary>
+	private static string Property(IPropertySymbol property)
+	{
+		string declaration = property.ToDisplayString(MemberFormat);
+		int accessorsStart = declaration.LastIndexOf(" { ", StringComparison.Ordinal);
+		IEnumerable<string> accessors = declaration
+			.Substring(accessorsStart + 3, declaration.Length - accessorsStart - 5)
+			.Split([';',], StringSplitOptions.RemoveEmptyEntries)
+			.Select(accessor => accessor.Trim())
+			.Select(accessor => string.Concat(MethodAttributes(accessor.EndsWith("get", StringComparison.Ordinal)
+				                    ? property.GetMethod!
+				                    : property.SetMethod!).Select(attribute => $"[{attribute}] ")) +
+			                    accessor + ";");
+		return declaration.Remove(accessorsStart) + " { " + string.Join(" ", accessors) + " }";
+	}
 
 	/// <remarks>
 	///     The display ends with the type parameters of the method, which are replaced to include their attributes.
@@ -375,7 +417,7 @@ public static class PublicApiWriter
 		}
 
 		string typeParameters = "<" + string.Join(", ", method.TypeParameters.Select(p => p.Name)) + ">";
-		return header.Substring(0, header.Length - typeParameters.Length) + TypeParameterList(method.TypeParameters);
+		return header.Remove(header.Length - typeParameters.Length) + TypeParameterList(method.TypeParameters);
 	}
 
 	private static string TypeParameterList(IReadOnlyCollection<ITypeParameterSymbol> typeParameters)
@@ -390,9 +432,33 @@ public static class PublicApiWriter
 					_ => "",
 				} + typeParameter.Name)) + ">";
 
-	private static string Parameter(IParameterSymbol parameter)
+	private static string Parameter(IParameterSymbol parameter, bool isThis)
 		=> string.Concat(Attributes(parameter).Select(attribute => $"[{attribute}] ")) +
-		   parameter.ToDisplayString(MemberFormat);
+		   (isThis ? "this " : "") + QualifyEnumDefaultValue(parameter, parameter.ToDisplayString(MemberFormat));
+
+	/// <summary>
+	///     The display writes the members of an enum in a default value without their type, e.g. <c>Rock</c>.
+	/// </summary>
+	private static string QualifyEnumDefaultValue(IParameterSymbol parameter, string declaration)
+	{
+		ITypeSymbol valueType = parameter.Type is INamedTypeSymbol
+		{
+			OriginalDefinition.SpecialType: SpecialType.System_Nullable_T,
+		} nullable
+			? nullable.TypeArguments[0]
+			: parameter.Type;
+		if (valueType is not INamedTypeSymbol { TypeKind: TypeKind.Enum, } type ||
+		    !parameter.HasExplicitDefaultValue || parameter.ExplicitDefaultValue is null)
+		{
+			return declaration;
+		}
+
+		int valueStart = declaration.LastIndexOf(" = ", StringComparison.Ordinal) + 3;
+		string typeName = type.ToDisplayString(MemberFormat);
+		return declaration.Remove(valueStart) + string.Join(" | ", declaration.Substring(valueStart)
+			.Split([" | ",], StringSplitOptions.None)
+			.Select(name => type.MemberNames.Contains(name) ? $"{typeName}.{name}" : name));
+	}
 
 	private static int Rank(ISymbol member) => member switch
 	{
@@ -514,19 +580,47 @@ public static class PublicApiWriter
 
 	private static void WriteAttributes(StringBuilder sb, ISymbol symbol, string indent)
 	{
-		foreach (string attribute in Attributes(symbol))
+		foreach (string attribute in symbol switch
+		         {
+			         IMethodSymbol method => MethodAttributes(method),
+			         INamedTypeSymbol { DelegateInvokeMethod: { } invoke, } => Attributes(symbol)
+				         .Concat(ReturnAttributes(invoke)),
+			         _ => Attributes(symbol),
+		         })
 		{
 			sb.Append(indent).Append('[').Append(attribute).Append("]\n");
 		}
 	}
 
+	private static IEnumerable<string> MethodAttributes(IMethodSymbol method)
+		=> Attributes(method).Concat(ReturnAttributes(method));
+
+	private static IEnumerable<string> ReturnAttributes(IMethodSymbol method)
+		=> Attributes(method.GetReturnTypeAttributes()).Select(attribute => $"return: {attribute}");
+
 	private static IEnumerable<string> Attributes(ISymbol symbol)
-		=> symbol.GetAttributes()
+		=> Attributes(symbol.GetAttributes());
+
+	private static IEnumerable<string> Attributes(IEnumerable<AttributeData> attributes)
+		=> attributes
 			.Where(attribute => attribute.AttributeClass is not null &&
 			                    !IgnoredAttributes.Contains(attribute.AttributeClass.ToDisplayString()) &&
 			                    !IsSnapshotsMetadata(attribute))
-			.Select(attribute => AttributeSuffix.Replace(attribute.ToString()!, ""))
+			.Select(AttributeText)
 			.OrderBy(attribute => attribute, StringComparer.Ordinal);
+
+	/// <summary>
+	///     The display starts with the name of the attribute class, whose suffix <c>Attribute</c> is removed.
+	/// </summary>
+	private static string AttributeText(AttributeData attribute)
+	{
+		const string suffix = "Attribute";
+		string display = attribute.ToString()!;
+		string name = attribute.AttributeClass!.ToDisplayString();
+		return name.EndsWith(suffix, StringComparison.Ordinal) && display.StartsWith(name, StringComparison.Ordinal)
+			? display.Remove(name.Length - suffix.Length, suffix.Length)
+			: display;
+	}
 
 	/// <summary>
 	///     The build targets of aweXpect.Snapshots add the source roots of a test project as assembly metadata, which

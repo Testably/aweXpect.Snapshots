@@ -26,6 +26,7 @@ public static class ThatPublicApi
 	/// <param name="subject">The subject.</param>
 	/// <param name="callerFilePath">The path of the test file, which is set by the compiler.</param>
 	/// <param name="callerMemberName">The name of the test method, which is set by the compiler.</param>
+	[GuaranteesNotNull]
 	public static SnapshotResult<string?, IThat<string?>> MatchesPublicApiSnapshot(
 		this IThat<Assembly?> subject,
 		[CallerFilePath] string callerFilePath = "",

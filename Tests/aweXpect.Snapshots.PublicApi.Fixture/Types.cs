@@ -15,6 +15,7 @@ public abstract class Album : IComparable<Album>
 
 	public string Title { get; }
 	public string? Note { get; set; }
+	public string? Cover { [return: Marker("getter")] get; [Marker("setter")] set; }
 	public string this[int track] => Title;
 
 	public event EventHandler? Played;
@@ -28,10 +29,14 @@ public abstract class Album : IComparable<Album>
 		return false;
 	}
 
-	internal void Hidden() { }
+	internal static void Hidden() => throw new NotSupportedException();
 
 	public static bool operator ==(Album? left, Album? right) => false;
 	public static bool operator !=(Album? left, Album? right) => true;
+	public static bool operator <(Album? left, Album? right) => false;
+	public static bool operator <=(Album? left, Album? right) => true;
+	public static bool operator >(Album? left, Album? right) => false;
+	public static bool operator >=(Album? left, Album? right) => true;
 	public static explicit operator string(Album album) => album.Title;
 
 	public override bool Equals(object? obj) => false;
@@ -44,12 +49,25 @@ public abstract class Album : IComparable<Album>
 }
 
 [Flags]
-public enum Genre : byte
+public enum Genres : byte
 {
 	None = 0,
 	Rock = 1,
 	Jazz = 2,
 	All = Rock | Jazz,
+}
+
+public enum Mood : sbyte
+{
+	Sad = -1,
+	Neutral = 0,
+	Happy = 1,
+}
+
+[AttributeUsage(AttributeTargets.All)]
+public sealed class MarkerAttribute(string name) : Attribute
+{
+	public string Name { get; } = name;
 }
 
 public interface IPlayer<in TAlbum> where TAlbum : Album
@@ -58,9 +76,21 @@ public interface IPlayer<in TAlbum> where TAlbum : Album
 	void Play(TAlbum album, bool shuffle = false);
 }
 
+#if NET
+public interface IParser<TSelf> where TSelf : IParser<TSelf>
+{
+	static abstract string Format { get; }
+	static abstract TSelf Parse(string text);
+	static virtual bool CanParse(string text) => true;
+}
+#endif
+
 public delegate TResult Converter<in TSource, out TResult>(TSource source) where TSource : notnull;
 
-public record Artist(string Name, Genre Genre = Genre.Rock);
+[return: Marker("delegate")]
+public delegate ref int Counter();
+
+public record Artist(string Name, Genres Genres = Genres.Rock);
 
 public readonly record struct Rating(int Stars);
 
@@ -73,15 +103,28 @@ public readonly struct Duration
 
 	public int Seconds { get; }
 #if NET
-	public ReadOnlySpan<char> Format(scoped ReadOnlySpan<char> pattern) => default;
+	public static ReadOnlySpan<char> Format(scoped ReadOnlySpan<char> pattern) => default;
 #endif
+}
+
+public struct Volume
+{
+	public Volume()
+	{
+		Level = 5;
+	}
+
+	public int Level { get; }
 }
 
 public static class Library
 {
 	public static T? Find<T>(this IEnumerable<T> source, Func<T, bool> predicate) where T : class, new() => null;
-	public static void Reset<T>(ref T value) where T : unmanaged { }
+	public static void Reset<T>(ref T value) where T : unmanaged => value = default;
 
 	[Obsolete("Use Find instead.")]
 	public static object? Search(string query) => null;
+
+	[return: Marker("result")]
+	public static object? Lookup(string key) => null;
 }

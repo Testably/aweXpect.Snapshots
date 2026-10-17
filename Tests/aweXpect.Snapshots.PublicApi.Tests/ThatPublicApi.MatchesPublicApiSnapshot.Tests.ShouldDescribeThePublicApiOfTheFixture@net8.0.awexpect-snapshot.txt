@@ -1,4 +1,4 @@
-[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v10.0", FrameworkDisplayName = ".NET 10.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName = ".NET 8.0")]
 namespace aweXpect.Snapshots.PublicApi.Fixture
 {
     public abstract class Album : System.IComparable<aweXpect.Snapshots.PublicApi.Fixture.Album>
@@ -6,6 +6,7 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
         public static readonly aweXpect.Snapshots.PublicApi.Fixture.Album? Empty;
         public const int MaxTracks = 99;
         protected Album(string title) { }
+        public string? Cover { [return: aweXpect.Snapshots.PublicApi.Fixture.Marker("getter")] get; [aweXpect.Snapshots.PublicApi.Fixture.Marker("setter")] set; }
         public string? Note { get; set; }
         public string Title { get; }
         public string this[int track] { get; }
@@ -18,7 +19,11 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
         protected internal virtual bool TryGetTrack(int number, out string? track, ref int position, in System.DateTime at) { }
         public static bool operator ==(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
         public static explicit operator string(aweXpect.Snapshots.PublicApi.Fixture.Album album) { }
+        public static bool operator >(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
+        public static bool operator >=(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
         public static bool operator !=(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
+        public static bool operator <(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
+        public static bool operator <=(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
         public sealed class Track
         {
             public Track() { }
@@ -28,11 +33,11 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
     public record Artist : System.IEquatable<aweXpect.Snapshots.PublicApi.Fixture.Artist>
     {
         protected Artist(aweXpect.Snapshots.PublicApi.Fixture.Artist original) { }
-        public Artist(string Name, aweXpect.Snapshots.PublicApi.Fixture.Genre Genre = Rock) { }
+        public Artist(string Name, aweXpect.Snapshots.PublicApi.Fixture.Genres Genres = aweXpect.Snapshots.PublicApi.Fixture.Genres.Rock) { }
         protected virtual System.Type EqualityContract { get; }
-        public aweXpect.Snapshots.PublicApi.Fixture.Genre Genre { get; init; }
+        public aweXpect.Snapshots.PublicApi.Fixture.Genres Genres { get; init; }
         public string Name { get; init; }
-        public void Deconstruct(out string Name, out aweXpect.Snapshots.PublicApi.Fixture.Genre Genre) { }
+        public void Deconstruct(out string Name, out aweXpect.Snapshots.PublicApi.Fixture.Genres Genres) { }
         public override bool Equals(object? obj) { }
         public virtual bool Equals(aweXpect.Snapshots.PublicApi.Fixture.Artist? other) { }
         public override int GetHashCode() { }
@@ -42,23 +47,30 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
         public static bool operator !=(aweXpect.Snapshots.PublicApi.Fixture.Artist? left, aweXpect.Snapshots.PublicApi.Fixture.Artist? right) { }
     }
     public delegate TResult Converter<in TSource, out TResult>(TSource source) where TSource : notnull;
+    [return: aweXpect.Snapshots.PublicApi.Fixture.Marker("delegate")]
+    public delegate ref int Counter();
     public readonly struct Duration
     {
         public Duration(int seconds) { }
         public int Seconds { get; }
-        public System.ReadOnlySpan<char> Format(scoped System.ReadOnlySpan<char> pattern) { }
+        public static System.ReadOnlySpan<char> Format(scoped System.ReadOnlySpan<char> pattern) { }
     }
     public static class ExtensionMembers
     {
+        public static bool IsNew([aweXpect.Snapshots.PublicApi.Fixture.Marker("this")] this string text) { }
         public static bool IsOld(this string text) { }
         extension<T>(System.Collections.Generic.IEnumerable<T> source) where T : class
         {
             public T? FirstOrNothing() { }
         }
+        extension([aweXpect.Snapshots.PublicApi.Fixture.Marker("receiver")] System.Collections.Generic.IList<string> list)
+        {
+            public bool IsEmpty { get; }
+        }
         extension(string)
         {
             public static string Default { get; set; }
-            public static string Create() { }
+            public static string Create(char character, int count) { }
         }
         extension(string text)
         {
@@ -67,12 +79,18 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
         }
     }
     [System.Flags]
-    public enum Genre : byte
+    public enum Genres : byte
     {
         None = 0,
         Rock = 1,
         Jazz = 2,
         All = 3,
+    }
+    public interface IParser<TSelf> where TSelf : aweXpect.Snapshots.PublicApi.Fixture.IParser<TSelf>
+    {
+        static abstract string Format { get; }
+        static virtual bool CanParse(string text) { }
+        static abstract TSelf Parse(string text);
     }
     public interface IPlayer<in TAlbum> where TAlbum : aweXpect.Snapshots.PublicApi.Fixture.Album
     {
@@ -82,9 +100,23 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
     public static class Library
     {
         public static T? Find<T>(this System.Collections.Generic.IEnumerable<T> source, System.Func<T, bool> predicate) where T : class, new() { }
+        [return: aweXpect.Snapshots.PublicApi.Fixture.Marker("result")]
+        public static object? Lookup(string key) { }
         public static void Reset<T>(ref T value) where T : unmanaged { }
         [System.Obsolete("Use Find instead.")]
         public static object? Search(string query) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.All)]
+    public sealed class MarkerAttribute : System.Attribute
+    {
+        public MarkerAttribute(string name) { }
+        public string Name { get; }
+    }
+    public enum Mood : sbyte
+    {
+        Sad = -1,
+        Neutral = 0,
+        Happy = 1,
     }
     public readonly struct Rating : System.IEquatable<aweXpect.Snapshots.PublicApi.Fixture.Rating>
     {
@@ -97,6 +129,11 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
         public override string ToString() { }
         public static bool operator ==(aweXpect.Snapshots.PublicApi.Fixture.Rating left, aweXpect.Snapshots.PublicApi.Fixture.Rating right) { }
         public static bool operator !=(aweXpect.Snapshots.PublicApi.Fixture.Rating left, aweXpect.Snapshots.PublicApi.Fixture.Rating right) { }
+    }
+    public struct Volume
+    {
+        public Volume() { }
+        public readonly int Level { get; }
     }
 }
 

@@ -34,6 +34,9 @@ await Expect.That(json).MatchesSnapshot().WithExtension("json");
 
 // keep a snapshot per target framework and operating system (AlbumTests.Describes@net8.0@windows.awexpect-snapshot.txt)
 await Expect.That(exception.Message).MatchesSnapshot().UniqueFor.TargetFramework().UniqueFor.OperatingSystem();
+
+// verify the public API of an assembly, written as C# declarations (package aweXpect.Snapshots.PublicApi)
+await Expect.That(typeof(Album).Assembly).MatchesPublicApiSnapshot().UniqueFor.TargetFramework();
 ```
 
 The snapshot is stored as `<Class>.<Method>.awexpect-snapshot.txt` next to the test file, where `<Class>` is the name
@@ -55,6 +58,7 @@ diff tool.
 |----------------------------------------------------------------------------------|----------|---------------------------------------------------------|
 | [`MatchesSnapshot`](Docs/pages/01-matching-snapshots.md#strings)              | `string` | matches the snapshot stored next to the test            |
 | [`MatchesSnapshot`](Docs/pages/01-matching-snapshots.md#objects) | any `T`  | matches the snapshot of the object, written by aweXpect |
+| [`MatchesPublicApiSnapshot`](Docs/pages/10-public-api.md) | `Assembly` | matches the snapshot of the public API of the assembly |
 
 ## Documentation
 

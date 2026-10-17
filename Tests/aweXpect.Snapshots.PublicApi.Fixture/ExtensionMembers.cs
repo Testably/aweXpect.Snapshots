@@ -15,10 +15,10 @@ public static class ExtensionMembers
 		public static string Default
 		{
 			get => _default;
-			set => _default = value;
+			set => _default = value.Trim();
 		}
 
-		public static string Create() => "";
+		public static string Create(char character, int count) => new(character, count);
 	}
 
 	private static string _default = "";
@@ -28,5 +28,16 @@ public static class ExtensionMembers
 		public T? FirstOrNothing() => null;
 	}
 
+	extension(int number)
+	{
+		internal bool IsHidden => number < 0;
+	}
+
+	extension([Marker("receiver")] IList<string> list)
+	{
+		public bool IsEmpty => list.Count == 0;
+	}
+
 	public static bool IsOld(this string text) => false;
+	public static bool IsNew([Marker("this")] this string text) => true;
 }
