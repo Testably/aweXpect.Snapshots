@@ -343,7 +343,7 @@ public sealed partial class ThatSnapshot
 						.Named("Abbey Road")
 						.UniqueFor.Architecture()
 						.UniqueFor.OperatingSystem()
-						.AcceptingChanges(false);
+						.AcceptingChanges(SnapshotAcceptance.None);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage($"""

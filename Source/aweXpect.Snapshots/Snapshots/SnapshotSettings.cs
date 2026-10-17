@@ -12,7 +12,7 @@ namespace aweXpect.Snapshots;
 /// </remarks>
 internal sealed record SnapshotSettings(
 	SnapshotStore Store,
-	bool? AcceptChanges,
+	SnapshotAcceptance? AcceptChanges,
 	IReadOnlyList<SnapshotRule> Rules)
 {
 	public static SnapshotSettings Read()
