@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -116,6 +117,8 @@ public class SnapshotResult<TType, TThat> : AndOrResult<TType, TThat, SnapshotRe
 			(argument3, doNotPopulateThisValue3));
 
 	/// <inheritdoc cref="NamedAfter(object, EndOfArguments, string)" />
+	[SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters",
+		Justification = "Each argument needs its own caller argument expression parameter.")]
 	public SnapshotResult<TType, TThat> NamedAfter(object? argument1, object? argument2, object? argument3,
 		object? argument4,
 		EndOfArguments endOfArguments = default,
