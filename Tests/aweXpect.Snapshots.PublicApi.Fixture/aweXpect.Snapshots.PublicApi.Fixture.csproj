@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+	    A library whose public API covers the language features, so that the tests compare its written public API.
+	-->
+	<PropertyGroup>
+		<IsTestProject>false</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Remove="xunit"/>
+		<PackageReference Remove="xunit.runner.visualstudio"/>
+		<PackageReference Remove="Microsoft.NET.Test.Sdk"/>
+		<PackageReference Remove="coverlet.collector"/>
+		<PackageReference Remove="aweXpect"/>
+	</ItemGroup>
+
+</Project>

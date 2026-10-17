@@ -1,0 +1,101 @@
+[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8", FrameworkDisplayName = ".NET Framework 4.8")]
+namespace aweXpect.Snapshots.PublicApi.Fixture
+{
+    public abstract class Album : System.IComparable<aweXpect.Snapshots.PublicApi.Fixture.Album>
+    {
+        public static readonly aweXpect.Snapshots.PublicApi.Fixture.Album? Empty;
+        public const int MaxTracks = 99;
+        protected Album(string title) { }
+        public string? Note { get; set; }
+        public string Title { get; }
+        public string this[int track] { get; }
+        public event System.EventHandler? Played;
+        public int CompareTo(aweXpect.Snapshots.PublicApi.Fixture.Album? other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public virtual void Play(params System.Collections.Generic.IEnumerable<string> tracks) { }
+        public abstract System.Collections.Generic.IEnumerable<string> Tracks();
+        protected internal virtual bool TryGetTrack(int number, out string? track, ref int position, in System.DateTime at) { }
+        public static bool operator ==(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
+        public static explicit operator string(aweXpect.Snapshots.PublicApi.Fixture.Album album) { }
+        public static bool operator !=(aweXpect.Snapshots.PublicApi.Fixture.Album? left, aweXpect.Snapshots.PublicApi.Fixture.Album? right) { }
+        public sealed class Track
+        {
+            public Track() { }
+            public int Number { get; init; }
+        }
+    }
+    public record Artist : System.IEquatable<aweXpect.Snapshots.PublicApi.Fixture.Artist>
+    {
+        protected Artist(aweXpect.Snapshots.PublicApi.Fixture.Artist original) { }
+        public Artist(string Name, aweXpect.Snapshots.PublicApi.Fixture.Genre Genre = Rock) { }
+        protected virtual System.Type EqualityContract { get; }
+        public aweXpect.Snapshots.PublicApi.Fixture.Genre Genre { get; init; }
+        public string Name { get; init; }
+        public void Deconstruct(out string Name, out aweXpect.Snapshots.PublicApi.Fixture.Genre Genre) { }
+        public override bool Equals(object? obj) { }
+        public virtual bool Equals(aweXpect.Snapshots.PublicApi.Fixture.Artist? other) { }
+        public override int GetHashCode() { }
+        protected virtual bool PrintMembers(System.Text.StringBuilder builder) { }
+        public override string ToString() { }
+        public static bool operator ==(aweXpect.Snapshots.PublicApi.Fixture.Artist? left, aweXpect.Snapshots.PublicApi.Fixture.Artist? right) { }
+        public static bool operator !=(aweXpect.Snapshots.PublicApi.Fixture.Artist? left, aweXpect.Snapshots.PublicApi.Fixture.Artist? right) { }
+    }
+    public delegate TResult Converter<in TSource, out TResult>(TSource source) where TSource : notnull;
+    public readonly struct Duration
+    {
+        public Duration(int seconds) { }
+        public int Seconds { get; }
+    }
+    public static class ExtensionMembers
+    {
+        public static bool IsOld(this string text) { }
+        extension<T>(System.Collections.Generic.IEnumerable<T> source) where T : class
+        {
+            public T? FirstOrNothing() { }
+        }
+        extension(string)
+        {
+            public static string Default { get; set; }
+            public static string Create() { }
+        }
+        extension(string text)
+        {
+            public bool IsBlank { get; }
+            public bool IsLongerThan(int length = 10) { }
+        }
+    }
+    [System.Flags]
+    public enum Genre : byte
+    {
+        None = 0,
+        Rock = 1,
+        Jazz = 2,
+        All = 3,
+    }
+    public interface IPlayer<in TAlbum> where TAlbum : aweXpect.Snapshots.PublicApi.Fixture.Album
+    {
+        string Name { get; }
+        void Play(TAlbum album, bool shuffle = false);
+    }
+    public static class Library
+    {
+        public static T? Find<T>(this System.Collections.Generic.IEnumerable<T> source, System.Func<T, bool> predicate) where T : class, new() { }
+        public static void Reset<T>(ref T value) where T : unmanaged { }
+        [System.Obsolete("Use Find instead.")]
+        public static object? Search(string query) { }
+    }
+    public readonly struct Rating : System.IEquatable<aweXpect.Snapshots.PublicApi.Fixture.Rating>
+    {
+        public Rating(int Stars) { }
+        public int Stars { get; init; }
+        public void Deconstruct(out int Stars) { }
+        public bool Equals(aweXpect.Snapshots.PublicApi.Fixture.Rating other) { }
+        public override bool Equals(object obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static bool operator ==(aweXpect.Snapshots.PublicApi.Fixture.Rating left, aweXpect.Snapshots.PublicApi.Fixture.Rating right) { }
+        public static bool operator !=(aweXpect.Snapshots.PublicApi.Fixture.Rating left, aweXpect.Snapshots.PublicApi.Fixture.Rating right) { }
+    }
+}
+
