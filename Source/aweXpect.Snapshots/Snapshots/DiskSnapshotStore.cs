@@ -127,12 +127,9 @@ internal sealed class DiskSnapshotStore : SnapshotStore
 	public override ValueTask<IReadOnlyList<SnapshotId>?> ListAsync(CancellationToken cancellationToken)
 	{
 		ConcurrentDictionary<SnapshotId, string> listed = new(ClaimedSnapshots.Comparer);
-		foreach (string projectDirectory in SourceRoots.GetProjectDirectories())
+		foreach (string projectDirectory in SourceRoots.GetProjectDirectories().Where(Directory.Exists))
 		{
-			if (Directory.Exists(projectDirectory))
-			{
-				CollectSnapshots(projectDirectory, listed, cancellationToken);
-			}
+			CollectSnapshots(projectDirectory, listed, cancellationToken);
 		}
 
 		_listed = listed;
@@ -145,12 +142,9 @@ internal sealed class DiskSnapshotStore : SnapshotStore
 	public override ValueTask DeleteAsync(SnapshotId id, CancellationToken cancellationToken)
 	{
 		string basePath = _listed.TryGetValue(id, out string? listedBasePath) ? listedBasePath : GetBasePath(id);
-		foreach (string path in new[] { basePath + SnapshotSuffix, basePath + PendingSuffix, })
+		foreach (string path in new[] { basePath + SnapshotSuffix, basePath + PendingSuffix, }.Where(File.Exists))
 		{
-			if (File.Exists(path))
-			{
-				File.Delete(path);
-			}
+			File.Delete(path);
 		}
 
 		return default;
@@ -173,7 +167,7 @@ internal sealed class DiskSnapshotStore : SnapshotStore
 		foreach (string subdirectory in Directory.GetDirectories(directory))
 		{
 			string name = Path.GetFileName(subdirectory);
-			if (name.StartsWith(".", StringComparison.Ordinal) ||
+			if ((name.Length > 0 && name[0] == '.') ||
 			    name.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
 			    name.Equals("obj", StringComparison.OrdinalIgnoreCase) ||
 			    Directory.EnumerateFiles(subdirectory, "*.*proj").Any())
@@ -221,7 +215,7 @@ internal sealed class DiskSnapshotStore : SnapshotStore
 		int lastDot = baseName.LastIndexOf('.');
 		if (testFiles.Count == 0 && lastDot > 0)
 		{
-			testFiles.Add(Path.Combine(directory, baseName.Substring(0, lastDot) + ".cs"));
+			testFiles.Add(Path.Combine(directory, Path.ChangeExtension(baseName, ".cs")));
 		}
 
 		SnapshotId[] candidates = testFiles
@@ -313,15 +307,13 @@ internal sealed class DiskSnapshotStore : SnapshotStore
 				continue;
 			}
 
-			if (i + 2 >= part.Length ||
-			    !int.TryParse(part.Substring(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture,
-				    out int code))
+			if (i + 2 >= part.Length || !Uri.IsHexDigit(part[i + 1]) || !Uri.IsHexDigit(part[i + 2]))
 			{
 				unescaped = null;
 				return false;
 			}
 
-			builder.Append((char)code);
+			builder.Append((char)((Uri.FromHex(part[i + 1]) << 4) + Uri.FromHex(part[i + 2])));
 			i += 2;
 		}
 
