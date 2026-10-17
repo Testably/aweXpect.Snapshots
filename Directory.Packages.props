@@ -7,6 +7,14 @@
 		<PackageVersion Include="aweXpect.Core" Version="3.4.0"/>
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0"/>
 	</ItemGroup>
+	<!--
+	    DiffEngine 13.0.2 is the last version for netstandard2.0. The other targets use the current version, as its API
+	    is not binary compatible with 13.0.2 and e.g. Verify brings it along.
+	-->
+	<ItemGroup>
+		<PackageVersion Include="DiffEngine" Version="13.0.2" Condition="'$(TargetFramework)' == 'netstandard2.0'"/>
+		<PackageVersion Include="DiffEngine" Version="20.8.2" Condition="'$(TargetFramework)' != 'netstandard2.0'"/>
+	</ItemGroup>
 	<ItemGroup>
 		<PackageVersion Include="Nullable" Version="1.3.1"/>
 		<PackageVersion Include="IsExternalInit" Version="1.0.3"/>

@@ -53,6 +53,10 @@ comparison, e.g. an image comparer that tolerates small differences of single pi
 [Reporters](Docs/pages/09-reporters.md) are told about every missing, different or matching snapshot, e.g. to open a
 diff tool.
 
+Reference [aweXpect.Snapshots.DiffEngine](https://www.nuget.org/packages/aweXpect.Snapshots.DiffEngine) as well, and a
+missing or different snapshot opens a diff tool with [DiffEngine](https://github.com/VerifyTests/DiffEngine), in which
+the change can be taken over into the snapshot; see [Diff tools](Docs/pages/09-diff-tools.md).
+
 ## Overview
 
 | Expectation                                                                      | Subject  | Summary                                                 |

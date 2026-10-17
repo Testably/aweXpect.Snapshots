@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/aweXpect.Snapshots.Api.Tests/aweXpect.Snapshots.Api.Tests.csproj" />
+    <Project Path="Tests/aweXpect.Snapshots.DiffEngine.Tests/aweXpect.Snapshots.DiffEngine.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.Orphans.Tests/aweXpect.Snapshots.Orphans.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.PublicApi.Fixture/aweXpect.Snapshots.PublicApi.Fixture.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.PublicApi.Tests/aweXpect.Snapshots.PublicApi.Tests.csproj" />
@@ -52,4 +53,5 @@
   </Folder>
   <Project Path="Source/aweXpect.Snapshots/aweXpect.Snapshots.csproj" />
   <Project Path="Source/aweXpect.Snapshots.PublicApi/aweXpect.Snapshots.PublicApi.csproj" />
+  <Project Path="Source/aweXpect.Snapshots.DiffEngine/aweXpect.Snapshots.DiffEngine.csproj" />
 </Solution>

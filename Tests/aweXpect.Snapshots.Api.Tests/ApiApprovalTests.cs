@@ -19,6 +19,7 @@ public sealed class ApiApprovalTests
 	private static readonly string[] AssemblyNames =
 	[
 		"aweXpect.Snapshots",
+		"aweXpect.Snapshots.DiffEngine",
 		"aweXpect.Snapshots.PublicApi",
 	];
 

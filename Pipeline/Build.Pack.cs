@@ -73,6 +73,7 @@ partial class Build
 			         {
 				         Solution.aweXpect_Snapshots,
 				         Solution.aweXpect_Snapshots_PublicApi,
+				         Solution.aweXpect_Snapshots_DiffEngine,
 			         })
 			{
 				foreach (string package in
