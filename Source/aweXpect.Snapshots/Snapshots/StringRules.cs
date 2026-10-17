@@ -27,8 +27,7 @@ internal static class StringRules
 	{
 		try
 		{
-			ValueTask<bool> result = options.AreConsideredEqual(actual, expected);
-			return result.IsCompletedSuccessfully ? result.Result : result.AsTask().GetAwaiter().GetResult();
+			return options.AreConsideredEqual(actual, expected).AsTask().GetAwaiter().GetResult();
 		}
 		catch (ArgumentException exception) when (exception.InnerException is RegexMatchTimeoutException timeout)
 		{
