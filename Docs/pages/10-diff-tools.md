@@ -26,7 +26,7 @@ other options, e.g. the order of the diff tools.
 
 ## Registration
 
-The package registers a [reporter](08-reporters.md) by adding a small file with a module initializer to the test
+The package registers a [reporter](09-reporters.md) by adding a small file with a module initializer to the test
 project. To register it yourself, e.g. only for some test projects, turn this off in the project file:
 
 ```xml

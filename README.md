@@ -55,7 +55,7 @@ diff tool.
 
 Reference [aweXpect.Snapshots.DiffEngine](https://www.nuget.org/packages/aweXpect.Snapshots.DiffEngine) as well, and a
 missing or different snapshot opens a diff tool with [DiffEngine](https://github.com/VerifyTests/DiffEngine), in which
-the change can be taken over into the snapshot; see [Diff tools](Docs/pages/09-diff-tools.md).
+the change can be taken over into the snapshot; see [Diff tools](Docs/pages/10-diff-tools.md).
 
 ## Overview
 
@@ -63,7 +63,7 @@ the change can be taken over into the snapshot; see [Diff tools](Docs/pages/09-d
 |----------------------------------------------------------------------------------|----------|---------------------------------------------------------|
 | [`MatchesSnapshot`](Docs/pages/01-matching-snapshots.md#strings)              | `string` | matches the snapshot stored next to the test            |
 | [`MatchesSnapshot`](Docs/pages/01-matching-snapshots.md#objects) | any `T`  | matches the snapshot of the object, written by aweXpect |
-| [`MatchesPublicApiSnapshot`](Docs/pages/10-public-api.md) | `Assembly` | matches the snapshot of the public API of the assembly |
+| [`MatchesPublicApiSnapshot`](Docs/pages/11-public-api.md) | `Assembly` | matches the snapshot of the public API of the assembly |
 
 ## Documentation
 
