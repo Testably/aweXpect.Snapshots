@@ -172,7 +172,7 @@ Album {
 - Ignoring wins over masking, the first masking that matches a value replaces it, and the rules of the expectation come
   before those for all snapshots. They apply before the maskings of the text.
 
-### Members of a type, predicates and empty collections
+### Members of a type and predicates
 
 A member name matches every member of that name, whichever object it belongs to. To select the member of one type
 only, pass an expression to `MemberOf<T>(…)`, or decide for each value with a predicate:
@@ -182,8 +182,7 @@ await Expect.That(album).MatchesSnapshot()
     .Ignoring.MemberOf<Album>(a => a.Price)                         // only the price of an album, not of its tracks
     .Masking.MemberOf<Track>(t => t.Id)                             // numbered: Id = {Id_1}
     .Ignoring.Member(value => value.Name.EndsWith("Url", StringComparison.Ordinal))
-    .Masking.Member(value => value.DeclaringType == typeof(Track) && value.Name == "Duration")
-    .Ignoring.EmptyCollections();
+    .Masking.Member(value => value.DeclaringType == typeof(Track) && value.Name == "Duration");
 ```
 
 ```text title="Snapshot"
@@ -209,10 +208,31 @@ Album {
   declared `Type` and `DeclaringType`; the value itself is only read when the predicate calls `GetValue()`. Check
   `value.Kind == FormattedValueKind.Member` to leave items untouched. A numbered placeholder is named after the member,
   or `Item` for an item of a collection or a dictionary value.
+
+### Empty collections
+
+Members that are often empty, e.g. the bonus tracks of an album, can be left out while they are empty:
+
+```csharp
+await Expect.That(album).MatchesSnapshot().Ignoring.EmptyCollections();
+```
+
+```text title="Snapshot"
+Album {
+  Title = "Let It Be",
+  Tracks = [
+    "Two of Us",
+    "Dig a Pony"
+  ]
+}
+```
+
 - `.Ignoring.EmptyCollections()` leaves out each member whose value is an empty array, list, set, dictionary or other
-  collection that knows its count. A `null` value and an empty `string` are kept, and so are empty items of a
-  collection or values of a dictionary, which keep their place. A sequence that does not know its count, like a LINQ
-  query or an iterator, is kept as well and only enumerated once to be written, as it might only be enumerable once.
+  collection that knows its count, here `BonusTracks = []`.
+- A `null` value and an empty `string` are kept, and so are empty items of a collection or values of a dictionary,
+  which keep their place.
+- A sequence that does not know its count, like a LINQ query or an iterator, is kept as well and only enumerated once
+  to be written, as it might only be enumerable once.
 
 A `string` is compared as raw text and has no members, so a member or type rule on a `string` subject throws an
 `InvalidOperationException`.
