@@ -98,8 +98,7 @@ internal sealed class SnapshotValueRule
 
 		try
 		{
-			object? actual = value.GetValue();
-			return actual is not null && type.IsAssignableFrom(actual.GetType());
+			return type.IsInstanceOfType(value.GetValue());
 		}
 		catch (Exception)
 		{

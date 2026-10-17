@@ -659,5 +659,7 @@ public sealed class RuleLink
 
 public sealed class RuleThrowing
 {
-	public object? Value => throw new InvalidOperationException("boom");
+	private readonly string _message = "boom";
+
+	public object? Value => throw new InvalidOperationException(_message);
 }
