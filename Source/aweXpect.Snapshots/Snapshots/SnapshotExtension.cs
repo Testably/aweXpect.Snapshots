@@ -42,7 +42,7 @@ internal static class SnapshotExtension
 			return "The 'extension' cannot be empty.";
 		}
 
-		if (extension.IndexOf('.') >= 0)
+		if (extension.Contains('.'))
 		{
 			return "The 'extension' cannot contain a '.', e.g. use \"json\" instead of \".json\".";
 		}
