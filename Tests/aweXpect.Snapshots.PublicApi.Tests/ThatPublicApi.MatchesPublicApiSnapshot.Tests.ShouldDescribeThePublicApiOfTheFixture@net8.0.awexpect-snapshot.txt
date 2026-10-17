@@ -99,6 +99,8 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
     }
     public static class Library
     {
+        [aweXpect.Snapshots.PublicApi.Fixture.Marker("arguments", Numbers = new int[] { 1, 2 }, Targets = System.AttributeTargets.Class | System.AttributeTargets.Struct, Type = typeof(aweXpect.Snapshots.PublicApi.Fixture.Album))]
+        public static void Annotated() { }
         public static T? Find<T>(this System.Collections.Generic.IEnumerable<T> source, System.Func<T, bool> predicate) where T : class, new() { }
         [return: aweXpect.Snapshots.PublicApi.Fixture.Marker("result")]
         public static object? Lookup(string key) { }
@@ -111,6 +113,9 @@ namespace aweXpect.Snapshots.PublicApi.Fixture
     {
         public MarkerAttribute(string name) { }
         public string Name { get; }
+        public int[]? Numbers { get; set; }
+        public System.AttributeTargets Targets { get; set; }
+        public System.Type? Type { get; set; }
     }
     public enum Mood : sbyte
     {

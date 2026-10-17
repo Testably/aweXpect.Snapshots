@@ -651,18 +651,32 @@ public static class PublicApiWriter
 			.Select(AttributeText)
 			.OrderBy(attribute => attribute, StringComparer.Ordinal);
 
-	/// <summary>
-	///     The display starts with the name of the attribute class, whose suffix <c>Attribute</c> is removed.
-	/// </summary>
+	/// <remarks>
+	///     The attribute is written from its arguments, as its display is no documented format.
+	/// </remarks>
 	private static string AttributeText(AttributeData attribute)
 	{
 		const string suffix = "Attribute";
-		string display = attribute.ToString()!;
-		string name = attribute.AttributeClass!.ToDisplayString();
-		return name.EndsWith(suffix, StringComparison.Ordinal) && display.StartsWith(name, StringComparison.Ordinal)
-			? display.Remove(name.Length - suffix.Length, suffix.Length)
-			: display;
+		INamedTypeSymbol attributeClass = attribute.AttributeClass!;
+		string name = attributeClass.ToDisplayString(MemberFormat);
+		if (attributeClass.Name.EndsWith(suffix, StringComparison.Ordinal))
+		{
+			int nameEnd = attributeClass.IsGenericType ? name.IndexOf('<') : name.Length;
+			name = name.Remove(nameEnd - suffix.Length, suffix.Length);
+		}
+
+		string arguments = string.Join(", ", attribute.ConstructorArguments.Select(Value)
+			.Concat(attribute.NamedArguments.Select(argument => $"{argument.Key} = {Value(argument.Value)}")));
+		return arguments.Length == 0 ? name : $"{name}({arguments})";
 	}
+
+	/// <remarks>
+	///     <c>ToCSharpString()</c> writes an array without its type, e.g. <c>{1, 2}</c>.
+	/// </remarks>
+	private static string Value(TypedConstant constant)
+		=> constant is { Kind: TypedConstantKind.Array, IsNull: false, }
+			? $"new {constant.Type!.ToDisplayString(MemberFormat)} {{ {string.Join(", ", constant.Values.Select(Value))} }}"
+			: constant.ToCSharpString();
 
 	/// <summary>
 	///     The build targets of aweXpect.Snapshots add the source roots of a test project as assembly metadata, which

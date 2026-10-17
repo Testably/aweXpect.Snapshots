@@ -68,6 +68,9 @@ public enum Mood : sbyte
 public sealed class MarkerAttribute(string name) : Attribute
 {
 	public string Name { get; } = name;
+	public int[]? Numbers { get; set; }
+	public AttributeTargets Targets { get; set; }
+	public Type? Type { get; set; }
 }
 
 public interface IPlayer<in TAlbum> where TAlbum : Album
@@ -127,4 +130,8 @@ public static class Library
 
 	[return: Marker("result")]
 	public static object? Lookup(string key) => null;
+
+	[Marker("arguments", Numbers = new[] { 1, 2, }, Targets = AttributeTargets.Class | AttributeTargets.Struct,
+		Type = typeof(Album))]
+	public static void Annotated() { }
 }
