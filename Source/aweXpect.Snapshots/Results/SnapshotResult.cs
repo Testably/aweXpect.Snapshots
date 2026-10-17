@@ -29,13 +29,13 @@ public class SnapshotResult<TType, TThat> : AndOrResult<TType, TThat, SnapshotRe
 	///     fails, saying that the snapshot was accepted, so that the next run compares with it.
 	/// </summary>
 	/// <remarks>
-	///     It overrides <c>Customize.aweXpect.Snapshots().AcceptChanges</c> and the environment variable
+	///     It overrides <c>Customize.aweXpect.Snapshots().Acceptance</c> and the environment variable
 	///     <c>AWEXPECT_ACCEPT_SNAPSHOTS</c>, also on a build server.<br />
 	///     It is the last option of the expectation, so that it is easy to find and remove again.
 	/// </remarks>
-	public AndOrResult<TType, TThat> AcceptingChanges(SnapshotAcceptance mode = SnapshotAcceptance.All)
+	public AndOrResult<TType, TThat> Accepting(SnapshotAcceptance mode)
 	{
-		_options.AcceptChanges = mode;
+		_options.Acceptance = mode;
 		return new AndOrResult<TType, TThat>(ExpectationBuilder, _returnValue);
 	}
 

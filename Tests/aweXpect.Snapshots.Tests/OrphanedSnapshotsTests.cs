@@ -163,7 +163,7 @@ public sealed class OrphanedSnapshotsTests
 		InMemorySnapshotStore store = new();
 		store.Snapshots[new SnapshotId(SourceFile, "Describes") { Variant = variant, }] = "Abbey Road";
 		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.All);
+		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 
 		async Task Act() => await OrphanedSnapshots.CheckAsync(true);
 
@@ -187,7 +187,7 @@ public sealed class OrphanedSnapshotsTests
 	}
 
 	[Fact]
-	public async Task WhenAcceptingChanges_ShouldDeleteTheSnapshotsAndStillFail()
+	public async Task WhenAcceptingAll_ShouldDeleteTheSnapshotsAndStillFail()
 	{
 		SnapshotId used = new(SourceFile, "Describes", "Abbey Road");
 		SnapshotId unused = new(SourceFile, "Describes", "Let It Be");
@@ -196,7 +196,7 @@ public sealed class OrphanedSnapshotsTests
 		store.Snapshots[unused] = "Let It Be";
 		store.Mismatches[unused] = "Let It Be (Remastered)";
 		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.All);
+		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 		await That("Abbey Road").MatchesSnapshot(SourceFile, "Describes").Named("Abbey Road");
 
 		async Task Act() => await OrphanedSnapshots.CheckAsync(true);
@@ -211,7 +211,7 @@ public sealed class OrphanedSnapshotsTests
 	}
 
 	[Fact]
-	public async Task WhenAcceptingChanges_AndDeletingThrows_ShouldNameTheErrorAndDeleteTheOthers()
+	public async Task WhenAcceptingAll_AndDeletingThrows_ShouldNameTheErrorAndDeleteTheOthers()
 	{
 		SnapshotId readOnly = new(SourceFile, "Describes", "Abbey Road");
 		SnapshotId other = new(SourceFile, "Describes", "Let It Be");
@@ -220,7 +220,7 @@ public sealed class OrphanedSnapshotsTests
 		store.Snapshots[other] = "Let It Be";
 		store.DeleteExceptions[readOnly] = new IOException("read-only");
 		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.All);
+		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 
 		async Task Act() => await OrphanedSnapshots.CheckAsync(true);
 
@@ -240,7 +240,7 @@ public sealed class OrphanedSnapshotsTests
 		InMemorySnapshotStore store = new();
 		store.Snapshots[unused] = "Let It Be";
 		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.New);
+		using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.New);
 
 		async Task Act() => await OrphanedSnapshots.CheckAsync(true);
 

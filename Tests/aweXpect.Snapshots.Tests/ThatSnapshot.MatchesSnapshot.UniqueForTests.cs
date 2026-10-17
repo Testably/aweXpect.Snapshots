@@ -122,7 +122,7 @@ public sealed partial class ThatSnapshot
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
 						.UniqueFor.OperatingSystem()
 						.Named("Let It Be")
-						.AcceptingChanges(SnapshotAcceptance.None);
+						.Accepting(SnapshotAcceptance.None);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage($"""

@@ -50,14 +50,14 @@ set), so that a variable that was forgotten in a pipeline cannot change the snap
 instead, which also applies on a build server:
 
 ```csharp
-await Expect.That(description).MatchesSnapshot().AcceptingChanges();                        // = SnapshotAcceptance.All
-await Expect.That(description).MatchesSnapshot().AcceptingChanges(SnapshotAcceptance.New);  // only a missing snapshot
-await Expect.That(description).MatchesSnapshot().AcceptingChanges(SnapshotAcceptance.None); // never accepts
+await Expect.That(description).MatchesSnapshot().Accepting(SnapshotAcceptance.All);  // a missing or different snapshot
+await Expect.That(description).MatchesSnapshot().Accepting(SnapshotAcceptance.New);  // only a missing snapshot
+await Expect.That(description).MatchesSnapshot().Accepting(SnapshotAcceptance.None); // never accepts
 
-Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.New);                   // for the current async flow
+Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.New);               // for the current async flow
 ```
 
-`AcceptingChanges(…)` takes precedence over `Customize.aweXpect.Snapshots().AcceptChanges`, which takes precedence
-over the environment variable, so `AcceptingChanges(SnapshotAcceptance.None)` keeps a snapshot from being accepted
-while the variable is set. The setting defaults to `null`, which leaves it to the environment variable.
-`AcceptingChanges(…)` is always the last option of the expectation, so that it is easy to find and remove again.
+`Accepting(…)` takes precedence over `Customize.aweXpect.Snapshots().Acceptance`, which takes precedence over the
+environment variable, so `Accepting(SnapshotAcceptance.None)` keeps a snapshot from being accepted while the variable
+is set. The setting defaults to `null`, which leaves it to the environment variable.
+`Accepting(…)` is always the last option of the expectation, so that it is easy to find and remove again.

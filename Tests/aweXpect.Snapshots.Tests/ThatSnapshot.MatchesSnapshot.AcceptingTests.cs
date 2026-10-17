@@ -11,7 +11,7 @@ public sealed partial class ThatSnapshot
 {
 	public sealed partial class MatchesSnapshot
 	{
-		public sealed class AcceptingChangesTests
+		public sealed class AcceptingTests
 		{
 			private SnapshotId Id { get; } = new($"/src/{Guid.NewGuid():N}/MyTests.cs", "MyTest");
 
@@ -24,14 +24,15 @@ public sealed partial class ThatSnapshot
 				string subject = "foo";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges()
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All)
 						.And.IsNotEmpty();
 
 				await That(Act).DoesNotThrow();
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndAcceptingThrows_ShouldNameTheErrorAndRecordAMismatchInstead()
+			public async Task WhenAcceptingAll_AndAcceptingThrows_ShouldNameTheErrorAndRecordAMismatchInstead()
 			{
 				InMemorySnapshotStore store = new()
 				{
@@ -41,7 +42,8 @@ public sealed partial class ThatSnapshot
 				string subject = "foo";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -62,7 +64,7 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndAcceptingAndRecordingThrow_ShouldNameBothErrors()
+			public async Task WhenAcceptingAll_AndAcceptingAndRecordingThrow_ShouldNameBothErrors()
 			{
 				InMemorySnapshotStore store = new()
 				{
@@ -73,7 +75,8 @@ public sealed partial class ThatSnapshot
 				string subject = "foo";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -93,7 +96,7 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndNegated_ShouldFail()
+			public async Task WhenAcceptingAll_AndNegated_ShouldFail()
 			{
 				InMemorySnapshotStore store = new();
 				store.Snapshots[Id] = "bar";
@@ -102,7 +105,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).DoesNotComplyWith(it
-						=> it.MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges());
+						=> it.MatchesSnapshot(Id.SourceFile, Id.MemberName).Accepting(SnapshotAcceptance.All));
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -113,7 +116,7 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndReadingThrows_ShouldNotAccept()
+			public async Task WhenAcceptingAll_AndReadingThrows_ShouldNotAccept()
 			{
 				InMemorySnapshotStore store = new()
 				{
@@ -123,7 +126,8 @@ public sealed partial class ThatSnapshot
 				string subject = "foo";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*but the snapshot could not be read: locked").AsWildcard();
@@ -132,7 +136,7 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndSnapshotDiffers_ShouldAcceptTheSubjectAndFail()
+			public async Task WhenAcceptingAll_AndSnapshotDiffers_ShouldAcceptTheSubjectAndFail()
 			{
 				InMemorySnapshotStore store = new();
 				store.Snapshots[Id] = "foo bar";
@@ -140,7 +144,8 @@ public sealed partial class ThatSnapshot
 				string subject = "foo baz";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -164,14 +169,15 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndSnapshotIsMissing_ShouldAcceptTheSubjectAndFail()
+			public async Task WhenAcceptingAll_AndSnapshotIsMissing_ShouldAcceptTheSubjectAndFail()
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
 				string subject = "foo";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -190,7 +196,7 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndSnapshotIsUsedForAnotherValue_ShouldNotAccept()
+			public async Task WhenAcceptingAll_AndSnapshotIsUsedForAnotherValue_ShouldNotAccept()
 			{
 				InMemorySnapshotStore store = new();
 				store.Snapshots[Id] = "foo";
@@ -199,7 +205,8 @@ public sealed partial class ThatSnapshot
 				string subject = "bar";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*was already used for another value in this test run*").AsWildcard();
@@ -208,7 +215,7 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndSnapshotMatches_ShouldSucceedWithoutAccepting()
+			public async Task WhenAcceptingAll_AndSnapshotMatches_ShouldSucceedWithoutAccepting()
 			{
 				InMemorySnapshotStore store = new();
 				store.Snapshots[Id] = "foo";
@@ -216,7 +223,8 @@ public sealed partial class ThatSnapshot
 				string subject = "foo";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).DoesNotThrow();
 				await That(store.Accepted).IsEmpty();
@@ -224,59 +232,19 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
-			public async Task WhenAccepting_AndSubjectIsNull_ShouldNotAccept()
+			public async Task WhenAcceptingAll_AndSubjectIsNull_ShouldNotAccept()
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
 				string? subject = null;
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*but it was <null>").AsWildcard();
 				await That(store.Accepted).IsEmpty();
-			}
-
-			[Fact]
-			public async Task WhenAcceptingAll_AndSnapshotDiffers_ShouldAcceptTheSubjectAndFail()
-			{
-				InMemorySnapshotStore store = new();
-				store.Snapshots[Id] = "foo bar";
-				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				string subject = "foo baz";
-
-				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.All);
-
-				await That(Act).Throws<XunitException>()
-					.WithMessage("*Accepted snapshot:*").AsWildcard();
-				await That(store.Accepted).IsEqualTo(new Dictionary<SnapshotId, string>
-				{
-					[Id] = "foo baz",
-				});
-				await That(store.Mismatches).IsEmpty();
-			}
-
-			[Fact]
-			public async Task WhenAcceptingAll_AndSnapshotIsMissing_ShouldAcceptTheSubjectAndFail()
-			{
-				InMemorySnapshotStore store = new();
-				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				string subject = "foo";
-
-				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.All);
-
-				await That(Act).Throws<XunitException>()
-					.WithMessage("*Accepted snapshot:*").AsWildcard();
-				await That(store.Accepted).IsEqualTo(new Dictionary<SnapshotId, string>
-				{
-					[Id] = "foo",
-				});
-				await That(store.Mismatches).IsEmpty();
 			}
 
 			[Fact]
@@ -288,7 +256,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).DoesNotComplyWith(it
-						=> it.MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges(SnapshotAcceptance.New));
+						=> it.MatchesSnapshot(Id.SourceFile, Id.MemberName).Accepting(SnapshotAcceptance.New));
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*a snapshot cannot be negated").AsWildcard();
@@ -306,7 +274,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.New)
+						.Accepting(SnapshotAcceptance.New)
 						.Or.IsEqualTo("foo");
 
 				await That(Act).DoesNotThrow();
@@ -325,7 +293,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.New);
+						.Accepting(SnapshotAcceptance.New);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -356,7 +324,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.New);
+						.Accepting(SnapshotAcceptance.New);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -390,7 +358,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.None);
+						.Accepting(SnapshotAcceptance.None);
 
 				await That(Act).Throws<XunitException>();
 				await That(store.Accepted).IsEmpty();
@@ -409,7 +377,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.None);
+						.Accepting(SnapshotAcceptance.None);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*the snapshot did not exist*").AsWildcard();
@@ -425,12 +393,12 @@ public sealed partial class ThatSnapshot
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.All);
+				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 				string subject = "foo";
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.None);
+						.Accepting(SnapshotAcceptance.None);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*the snapshot did not exist*").AsWildcard();
@@ -446,12 +414,12 @@ public sealed partial class ThatSnapshot
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.None);
+				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.None);
 				string subject = "foo";
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.AcceptingChanges(SnapshotAcceptance.All);
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*Accepted snapshot:*").AsWildcard();
@@ -466,7 +434,7 @@ public sealed partial class ThatSnapshot
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.All);
+				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 				string subject = "foo";
 
 				async Task Act()
@@ -488,7 +456,7 @@ public sealed partial class ThatSnapshot
 				InMemorySnapshotStore store = new();
 				store.Snapshots[different] = "bar";
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.New);
+				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.New);
 
 				async Task ActOnMissing()
 					=> await That("foo").MatchesSnapshot(missing.SourceFile, missing.MemberName);
@@ -513,7 +481,7 @@ public sealed partial class ThatSnapshot
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.None);
+				using CustomizationLifetime __ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.None);
 				string subject = "foo";
 
 				async Task Act()
@@ -529,7 +497,7 @@ public sealed partial class ThatSnapshot
 		}
 
 		[Collection(nameof(EnvironmentCollection))]
-		public sealed class AcceptingChangesEnvironmentTests
+		public sealed class AcceptingEnvironmentTests
 		{
 			private const string AcceptVariable = "AWEXPECT_ACCEPT_SNAPSHOTS";
 
@@ -568,7 +536,7 @@ public sealed partial class ThatSnapshot
 				SnapshotAcceptance expected)
 			{
 				using EnvironmentScope environment = variable is null ? new() : new((AcceptVariable, variable));
-				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().AcceptChanges.Set(setting);
+				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Acceptance.Set(setting);
 
 				SnapshotAcceptance result = await GetAcceptance(expectation);
 
@@ -580,7 +548,7 @@ public sealed partial class ThatSnapshot
 			[InlineData("TF_BUILD")]
 			[InlineData("JENKINS_URL")]
 			[InlineData("TEAMCITY_VERSION")]
-			public async Task WhenAcceptingChanges_OnBuildServer_ShouldAccept(string buildServerVariable)
+			public async Task WhenAcceptingAll_OnBuildServer_ShouldAccept(string buildServerVariable)
 			{
 				using EnvironmentScope environment = new((buildServerVariable, "true"));
 				InMemorySnapshotStore store = new();
@@ -588,7 +556,8 @@ public sealed partial class ThatSnapshot
 				string subject = "foo";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>();
 				await That(store.Accepted.Keys).IsEqualTo(new[] { Id, }).InAnyOrder()
@@ -603,7 +572,7 @@ public sealed partial class ThatSnapshot
 			public async Task WhenGloballyAcceptingNew_OnBuildServer_ShouldAccept(string buildServerVariable)
 			{
 				using EnvironmentScope environment = new((buildServerVariable, "true"));
-				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().AcceptChanges.Set(SnapshotAcceptance.New);
+				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.New);
 
 				SnapshotAcceptance result = await GetAcceptance(null);
 
@@ -724,7 +693,7 @@ public sealed partial class ThatSnapshot
 						}
 						else
 						{
-							await result.AcceptingChanges(expectation.Value);
+							await result.Accepting(expectation.Value);
 						}
 					}
 

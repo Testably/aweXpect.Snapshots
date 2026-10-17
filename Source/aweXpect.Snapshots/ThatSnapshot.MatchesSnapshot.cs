@@ -37,7 +37,7 @@ public static class ThatSnapshot
 	///     name is not across namespaces.<br />
 	///     A missing or different snapshot fails the expectation and writes the subject to
 	///     <c>&lt;Class&gt;.&lt;Method&gt;.snapshot.pending.txt</c>, which can be renamed to accept it; a matching
-	///     snapshot deletes a leftover pending file. While accepting changes, see <c>.AcceptingChanges()</c>, the subject
+	///     snapshot deletes a leftover pending file. While accepting changes, see <c>.Accepting(…)</c>, the subject
 	///     replaces the snapshot instead (with <see cref="SnapshotAcceptance.New" /> only a missing one), and the
 	///     expectation still fails. Both only happen when the whole expectation
 	///     fails, not when e.g. another branch of an <c>Or</c> is met, and never for a negated snapshot.<br />
@@ -312,7 +312,7 @@ public static class ThatSnapshot
 				return this;
 			}
 
-			SnapshotAcceptance acceptance = snapshotOptions.AcceptChanges ?? settings.AcceptChanges ??
+			SnapshotAcceptance acceptance = snapshotOptions.Acceptance ?? settings.Acceptance ??
 			                                AcceptEnvironment.GetAcceptance();
 			_isAccepted = acceptance == SnapshotAcceptance.All ||
 			              (acceptance == SnapshotAcceptance.New && _snapshot is null);

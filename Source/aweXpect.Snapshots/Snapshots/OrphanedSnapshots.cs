@@ -27,7 +27,7 @@ public static class OrphanedSnapshots
 	///     that only runs some of the tests, e.g. one test in the IDE, cannot be told apart from a complete one, and would
 	///     report the snapshots of the others.<br />
 	///     While accepting all changes (<see cref="SnapshotAcceptance.All" /> in
-	///     <c>Customize.aweXpect.Snapshots().AcceptChanges</c> or the environment variable
+	///     <c>Customize.aweXpect.Snapshots().Acceptance</c> or the environment variable
 	///     <c>AWEXPECT_ACCEPT_SNAPSHOTS</c>, which is ignored on a build server), the orphaned snapshots are deleted, and
 	///     it still fails, listing them, so that a deletion never goes unnoticed. <see cref="SnapshotAcceptance.New" />
 	///     keeps them, as it only adds snapshots.<br />
@@ -80,7 +80,7 @@ public static class OrphanedSnapshots
 	private static async Task<string[]> GetOrphans(SnapshotSettings settings, IReadOnlyList<SnapshotId> snapshots,
 		CancellationToken cancellationToken)
 	{
-		bool isDeleting = (settings.AcceptChanges ?? AcceptEnvironment.GetAcceptance()) == SnapshotAcceptance.All;
+		bool isDeleting = (settings.Acceptance ?? AcceptEnvironment.GetAcceptance()) == SnapshotAcceptance.All;
 		List<string> lines = new();
 		foreach ((SnapshotId id, string description) in snapshots
 			         .Where(id => !ClaimedSnapshots.IsClaimed(id) && SnapshotEnvironment.IsCurrent(id))
