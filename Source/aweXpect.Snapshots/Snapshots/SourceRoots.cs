@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace aweXpect.Snapshots;
@@ -30,15 +31,11 @@ internal static class SourceRoots
 	/// </summary>
 	public static string GetSourceFile(string testFilePath)
 	{
-		foreach (KeyValuePair<string, string> recorded in Recorded.Value)
-		{
-			if (testFilePath.StartsWith(recorded.Key, PathComparison))
-			{
-				return testFilePath.Substring(recorded.Key.Length).Replace('\\', '/');
-			}
-		}
-
-		return testFilePath;
+		string? mappedPath = Recorded.Value.Select(recorded => recorded.Key)
+			.FirstOrDefault(key => testFilePath.StartsWith(key, PathComparison));
+		return mappedPath is null
+			? testFilePath
+			: testFilePath.Substring(mappedPath.Length).Replace('\\', '/');
 	}
 
 	/// <summary>
