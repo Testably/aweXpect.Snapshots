@@ -9,9 +9,16 @@ public sealed partial class ThatSnapshot
 {
 	public sealed partial class MatchesSnapshot
 	{
-		public sealed class MaskingTests
+		public sealed partial class MaskingTests
 		{
 			private SnapshotId Id { get; } = new($"/src/{Guid.NewGuid():N}/MyTests.cs", "MyTest");
+
+#if NET8_0_OR_GREATER
+			[GeneratedRegex("(token)=\\w+", RegexOptions.IgnoreCase)]
+			private static partial Regex TokenRegex();
+#else
+			private static Regex TokenRegex() => new("(token)=\\w+", RegexOptions.IgnoreCase);
+#endif
 
 			[Fact]
 			public async Task WhenAccepting_ShouldAcceptTheMaskedValue()
@@ -115,7 +122,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.Masking(new Regex("(token)=\\w+", RegexOptions.IgnoreCase), "$1=<token>");
+						.Masking(TokenRegex(), "$1=<token>");
 
 				await That(Act).Throws<XunitException>();
 				await That(store.Mismatches[Id]).IsEqualTo("Token=<token>, TOKEN=<token>");
@@ -166,7 +173,6 @@ public sealed partial class ThatSnapshot
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).Masking("(", "x").AsRegex();
 
 				await That(Act).Throws<ArgumentException>()
-					.WithParamName("value").And
 					.WithMessage("The 'value' is not a valid regex pattern: *").AsWildcard();
 			}
 
@@ -273,7 +279,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
-						.Masking(new Regex("foo"), null!);
+						.Masking(TokenRegex(), null!);
 
 				await That(Act).Throws<ArgumentNullException>()
 					.WithParamName("replacement");

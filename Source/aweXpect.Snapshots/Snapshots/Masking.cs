@@ -41,7 +41,8 @@ internal sealed class Masking
 	/// </summary>
 	/// <remarks>
 	///     The pattern is parsed here, so that an invalid one is reported where it is written instead of when the
-	///     expectation is evaluated.
+	///     expectation is evaluated. The message names the <c>value</c> of <c>.Masking(…)</c>, as <c>.AsRegex()</c> has
+	///     no parameter of its own.
 	/// </remarks>
 	public void AsRegex()
 	{
@@ -52,7 +53,7 @@ internal sealed class Masking
 		catch (ArgumentException exception)
 		{
 			throw Tracing.WriteException(new ArgumentException(
-				$"The 'value' is not a valid regex pattern: {exception.Message}", "value", exception));
+				$"The 'value' is not a valid regex pattern: {exception.Message}", exception));
 		}
 	}
 
