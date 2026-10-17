@@ -36,8 +36,8 @@ internal sealed class TestScope : IDisposable
 	public SnapshotId Id => new(TestFilePath, MemberName);
 	public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
 		$"aweXpect.Snapshots.DiffEngine.Tests.{Guid.NewGuid():N}");
-	public string PendingPath => System.IO.Path.Combine(Path, $"MyTests.{MemberName}.snapshot.pending.txt");
-	public string SnapshotPath => System.IO.Path.Combine(Path, $"MyTests.{MemberName}.snapshot.txt");
+	public string PendingPath => System.IO.Path.Combine(Path, $"MyTests.{MemberName}.awexpect-snapshot.pending.txt");
+	public string SnapshotPath => System.IO.Path.Combine(Path, $"MyTests.{MemberName}.awexpect-snapshot.txt");
 	public string TemporaryReceivedFile { get; }
 	public string TemporarySnapshotFile { get; }
 	public string TestFilePath => System.IO.Path.Combine(Path, "MyTests.cs");

@@ -9,9 +9,9 @@ Visual Studio, VS Code, Beyond Compare or WinMerge:
 <PackageReference Include="aweXpect.Snapshots.DiffEngine" Version="…"/>
 ```
 
-The diff tool compares the pending file with the snapshot file, e.g. `AlbumTests.Describes.snapshot.pending.txt` with
-`AlbumTests.Describes.snapshot.txt`, so taking over a change in the diff tool changes the snapshot, and the next run
-of the test passes. DiffEngine creates an empty snapshot file for a snapshot that does not exist yet, as most diff
+The diff tool compares the pending file with the snapshot file, e.g.
+`AlbumTests.Describes.awexpect-snapshot.pending.txt` with `AlbumTests.Describes.awexpect-snapshot.txt`, so taking over
+a change in the diff tool changes the snapshot, and the next run of the test passes. DiffEngine creates an empty snapshot file for a snapshot that does not exist yet, as most diff
 tools need two files. Once the snapshot matches, the diff tool is closed again.
 
 With a [store of your own](07-storing-snapshots.md) that keeps no files, the value and the snapshot are written to
