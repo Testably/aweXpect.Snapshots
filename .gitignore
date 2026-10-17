@@ -3,7 +3,7 @@
 /TestResults
 
 # Snapshots that await a decision
-*.snapshot.pending.txt
+*.snapshot.pending.*
 
 # Fallout temporary files
 .fallout/temp/
