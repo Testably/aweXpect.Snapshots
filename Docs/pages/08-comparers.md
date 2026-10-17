@@ -21,7 +21,7 @@ public sealed class CoverArtComparer(double minimumSimilarity) : SnapshotCompare
 
 `SnapshotComparisonContext` has the `Id` of the snapshot (e.g. its `Extension`), the reviewed `Snapshot` and the
 `Actual` value, after the rules of the expectation were applied, e.g. with masked GUIDs. Both are a `SnapshotContent`
-like for [reporters](08-reporters.md): the `Bytes` as the store keeps them, and the `Text` unless it is binary data.
+like for [reporters](09-reporters.md): the `Bytes` as the store keeps them, and the `Text` unless it is binary data.
 
 Use the comparer for one expectation with `.ComparedWith(…)`, for strings, objects and binary data:
 
@@ -54,3 +54,18 @@ order of the list, and otherwise the built-in comparison.
   comparer can be called concurrently and must be thread-safe.
 - An exception of a comparer or of its condition fails the expectation both ways, with the exception as its cause, and
   neither records nor accepts the value.
+
+## Testing a comparer
+
+`SnapshotContent.FromText(…)` and `SnapshotContent.FromBytes(…)` create the contents like a store keeps them, so that a
+comparer can be tested on its own:
+
+```csharp
+SnapshotComparisonContext context = new(new SnapshotId("AlbumTests.cs", "Cover"),
+    SnapshotContent.FromBytes(File.ReadAllBytes("abbey-road.png")),
+    SnapshotContent.FromBytes(RenderCover("Abbey Road")));
+
+SnapshotComparison comparison = await new CoverArtComparer(0.99).CompareAsync(context, CancellationToken.None);
+
+await Expect.That(comparison.IsEqual).IsTrue();
+```
