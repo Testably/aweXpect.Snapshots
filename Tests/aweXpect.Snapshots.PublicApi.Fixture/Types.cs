@@ -133,5 +133,5 @@ public static class Library
 
 	[Marker("arguments", Numbers = new[] { 1, 2, }, Targets = AttributeTargets.Class | AttributeTargets.Struct,
 		Type = typeof(Album))]
-	public static void Annotated() { }
+	public static void Annotated() => throw new NotSupportedException();
 }

@@ -24,11 +24,11 @@ namespace MyLibrary
 
 It usually differs between the target frameworks of a library, so keep a snapshot per target framework of the test
 project with `.UniqueFor.TargetFramework()`; each target framework of the test project loads the matching build of the
-library. A build that the tests cannot run on, e.g. for `netstandard2.0`, can be loaded from its file and named after
-its target framework:
+library. A build that the tests cannot run on, e.g. for `netstandard2.0`, or a reference assembly is read from its file
+without loading it, and named after its target framework:
 
 ```csharp
-await Expect.That(Assembly.LoadFile(path)).MatchesPublicApiSnapshot().Named("netstandard2.0");
+await Expect.That(new FileInfo(path)).MatchesPublicApiSnapshot().Named("netstandard2.0");
 ```
 
 The types in the signatures are resolved from the assemblies next to the assembly, in the output of the tests, of the

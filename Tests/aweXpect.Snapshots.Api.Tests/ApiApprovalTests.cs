@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace aweXpect.Api.Tests;
+namespace aweXpect.Snapshots.Api.Tests;
 
 /// <summary>
 ///     Whenever a test fails, this means that the public API surface changed.
@@ -12,12 +12,12 @@ public sealed class ApiApprovalTests
 {
 	[TestCaseSource(nameof(TargetFrameworksTheoryData))]
 	public async Task VerifyPublicApiForAweXpectSnapshots(string framework)
-		=> await That(Helper.LoadAssembly(framework, "aweXpect.Snapshots"))
+		=> await That(Helper.GetAssemblyFile(framework, "aweXpect.Snapshots"))
 			.MatchesPublicApiSnapshot().Named(framework);
 
 	[TestCaseSource(nameof(TargetFrameworksTheoryData))]
 	public async Task VerifyPublicApiForAweXpectSnapshotsPublicApi(string framework)
-		=> await That(Helper.LoadAssembly(framework, "aweXpect.Snapshots.PublicApi"))
+		=> await That(Helper.GetAssemblyFile(framework, "aweXpect.Snapshots.PublicApi"))
 			.MatchesPublicApiSnapshot().Named(framework);
 
 	private static List<string> TargetFrameworksTheoryData()

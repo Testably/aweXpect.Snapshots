@@ -1,28 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using System.Xml.XPath;
 
-namespace aweXpect.Api.Tests;
+namespace aweXpect.Snapshots.Api.Tests;
 
 public static class Helper
 {
 	/// <summary>
-	///     Loads the build of the <paramref name="assemblyName" /> for the <paramref name="framework" />, so that the
+	///     Returns the build of the <paramref name="assemblyName" /> for the <paramref name="framework" />, so that the
 	///     builds of all target frameworks are verified, including those that the tests cannot run on.
 	/// </summary>
-	public static Assembly LoadAssembly(string framework, string assemblyName)
+	public static FileInfo GetAssemblyFile(string framework, string assemblyName)
 	{
 #if DEBUG
 		string configuration = "Debug";
 #else
 		string configuration = "Release";
 #endif
-		return Assembly.LoadFile(
+		return new FileInfo(
 			CombinedPaths("Source", assemblyName, "bin", configuration, framework, $"{assemblyName}.dll"));
 	}
 

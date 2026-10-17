@@ -85,6 +85,7 @@ public static class PublicApiWriter
 		"System.Diagnostics.DebuggableAttribute",
 		"System.Runtime.CompilerServices.CompilationRelaxationsAttribute",
 		"System.Runtime.CompilerServices.RuntimeCompatibilityAttribute",
+		"System.Runtime.CompilerServices.ReferenceAssemblyAttribute",
 		"System.Reflection.AssemblyCompanyAttribute",
 		"System.Reflection.AssemblyConfigurationAttribute",
 		"System.Reflection.AssemblyCopyrightAttribute",
@@ -106,8 +107,7 @@ public static class PublicApiWriter
 	///     Writes the public API of the <paramref name="assembly" />, which must be loaded from a file.
 	/// </summary>
 	/// <remarks>
-	///     The types in signatures are resolved from the assemblies next to it, of the application, of the .NET version
-	///     it targets (when the .NET SDK is installed) and of the current runtime.
+	///     The file of the assembly is read like by <see cref="Write(string)" />.
 	/// </remarks>
 	/// <exception cref="InvalidOperationException">
 	///     An assembly that the <paramref name="assembly" /> references cannot be resolved, or only in a lower version, which
@@ -122,7 +122,25 @@ public static class PublicApiWriter
 				nameof(assembly));
 		}
 
-		return WriteFile(assembly.Location, GetReferencePack(assembly.Location));
+		return Write(assembly.Location);
+	}
+
+	/// <summary>
+	///     Writes the public API of the assembly in the <paramref name="assemblyFile" /> without loading it, e.g. of a
+	///     build for a target framework that the application cannot run on or of a reference assembly.
+	/// </summary>
+	/// <remarks>
+	///     The types in signatures are resolved from the assemblies next to it, of the application, of the .NET version
+	///     it targets (when the .NET SDK is installed) and of the current runtime.
+	/// </remarks>
+	/// <exception cref="InvalidOperationException">
+	///     An assembly that the assembly references cannot be resolved, or only in a lower version, which would change the
+	///     written public API.
+	/// </exception>
+	public static string Write(string assemblyFile)
+	{
+		string fullPath = Path.GetFullPath(assemblyFile);
+		return WriteFile(fullPath, GetReferencePack(fullPath));
 	}
 
 	private static string WriteFile(string assemblyFile, string? referencePack)

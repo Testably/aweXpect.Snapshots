@@ -5,13 +5,23 @@ using System.Reflection;
 using System.Reflection.Emit;
 using aweXpect.Snapshots.PublicApi.Fixture;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Emit;
+using static aweXpect.Snapshots.PublicApi.Tests.TestHelpers.Compiler;
 
 namespace aweXpect.Snapshots.PublicApi.Tests;
 
 public sealed class PublicApiWriterTests
 {
+	private const string LibrarySource = """
+	                                     namespace Library;
+	                                     public class Api
+	                                     {
+	                                         public void Enter(Dependency.Gate gate) { }
+	                                         private void Hidden() { }
+	                                     }
+	                                     """;
+
+	private const string DependencySource = "namespace Dependency; public class Gate { }";
+
 	[Fact]
 	public async Task Write_ShouldWriteNumbersIndependentlyOfTheCurrentCulture()
 	{
@@ -38,14 +48,12 @@ public sealed class PublicApiWriterTests
 	[Fact]
 	public async Task Write_WhenAReferenceIsMissing_ShouldThrowInvalidOperationException()
 	{
-		string directory = CreateDirectory();
-		byte[] dependency = Compile("Dependency", "2.0.0.0", "public class Gate { }");
-		File.WriteAllBytes(Path.Combine(directory, "Library.dll"), Compile("Library", "1.0.0.0",
-			"public class Api { public void Enter(Gate gate) { } }", MetadataReference.CreateFromImage(dependency)));
-		Assembly assembly = Assembly.LoadFile(Path.Combine(directory, "Library.dll"));
+		byte[] dependency = Compile("Dependency", "2.0.0.0", DependencySource);
+		string library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource,
+			[MetadataReference.CreateFromImage(dependency),]));
 
 		void Act()
-			=> PublicApiWriter.Write(assembly);
+			=> PublicApiWriter.Write(library);
 
 		await That(Act).Throws<InvalidOperationException>()
 			.WithMessage(
@@ -56,16 +64,14 @@ public sealed class PublicApiWriterTests
 	[Fact]
 	public async Task Write_WhenAReferenceIsOnlyFoundInALowerVersion_ShouldThrowInvalidOperationException()
 	{
-		string directory = CreateDirectory();
-		byte[] dependency = Compile("Dependency", "2.0.0.0", "public class Gate { }");
-		File.WriteAllBytes(Path.Combine(directory, "Dependency.dll"),
-			Compile("Dependency", "1.0.0.0", "public class Gate { }"));
-		File.WriteAllBytes(Path.Combine(directory, "Library.dll"), Compile("Library", "1.0.0.0",
-			"public class Api { public void Enter(Gate gate) { } }", MetadataReference.CreateFromImage(dependency)));
-		Assembly assembly = Assembly.LoadFile(Path.Combine(directory, "Library.dll"));
+		byte[] dependency = Compile("Dependency", "2.0.0.0", DependencySource);
+		string library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource,
+			[MetadataReference.CreateFromImage(dependency),]));
+		WriteFile("Dependency.dll", Compile("Dependency", "1.0.0.0", DependencySource),
+			Path.GetDirectoryName(library));
 
 		void Act()
-			=> PublicApiWriter.Write(assembly);
+			=> PublicApiWriter.Write(library);
 
 		await That(Act).Throws<InvalidOperationException>()
 			.WithMessage(
@@ -88,23 +94,41 @@ public sealed class PublicApiWriterTests
 			.AsWildcard();
 	}
 
-	private static byte[] Compile(string name, string version, string source, params MetadataReference[] references)
+	[Fact]
+	public async Task Write_WhenFileIsAReferenceAssembly_ShouldWriteThePublicApiOfTheImplementation()
 	{
-		CSharpCompilation compilation = CSharpCompilation.Create(name,
-			[CSharpSyntaxTree.ParseText($"[assembly: System.Reflection.AssemblyVersion(\"{version}\")]\n{source}"),],
-			references.Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)),
-			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-		using MemoryStream stream = new();
-		EmitResult result = compilation.Emit(stream);
-		if (!result.Success)
-		{
-			throw new InvalidOperationException(string.Join(Environment.NewLine, result.Diagnostics));
-		}
+		byte[] dependency = Compile("Dependency", "1.0.0.0", DependencySource);
+		MetadataReference[] references = [MetadataReference.CreateFromImage(dependency),];
+		string implementation = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource, references));
+		WriteFile("Dependency.dll", dependency, Path.GetDirectoryName(implementation));
+		string reference = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource, references, true));
+		WriteFile("Dependency.dll", dependency, Path.GetDirectoryName(reference));
 
-		return stream.ToArray();
+		string result = PublicApiWriter.Write(reference);
+
+		await That(result).IsEqualTo(PublicApiWriter.Write(implementation))
+			.Because("a reference assembly, which cannot be loaded, has the same public API as its implementation");
 	}
 
-	private static string CreateDirectory()
-		=> Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "aweXpect.Snapshots.PublicApi.Tests",
-			Guid.NewGuid().ToString("N"))).FullName;
+	[Fact]
+	public async Task Write_WhenGivenAFile_ShouldNotLoadTheAssembly()
+	{
+		string name = $"Unloaded{Guid.NewGuid():N}";
+		string file = WriteFile($"{name}.dll", Compile(name, "1.0.0.0", "namespace Unloaded; public class Api { }"));
+
+		PublicApiWriter.Write(file);
+
+		await That(AppDomain.CurrentDomain.GetAssemblies().Select(assembly => assembly.GetName().Name))
+			.DoesNotContain(name);
+	}
+
+	[Fact]
+	public async Task Write_WhenGivenTheFileOfAnAssembly_ShouldWriteTheSamePublicApiAsForTheAssembly()
+	{
+		Assembly assembly = typeof(Album).Assembly;
+
+		string result = PublicApiWriter.Write(assembly.Location);
+
+		await That(result).IsEqualTo(PublicApiWriter.Write(assembly));
+	}
 }
