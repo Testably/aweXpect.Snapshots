@@ -97,9 +97,7 @@ Album {
 - Maskings apply to the written text, e.g. `.Masking.Guids()` for a `Guid` member.
 
 In a trimmed application or under Native AOT, the members of the subject's type are only known when the source
-generator of aweXpect registers them for the call site, which it does for `MatchesSnapshot()`. It also marks a record,
-so that a record is written member by member there as well, instead of through its own `ToString()`; this needs aweXpect
-3.4.0 or later.
+generator of aweXpect registers them for the call site, which it does for `MatchesSnapshot()`.
 
 ## Accepting a snapshot
 
