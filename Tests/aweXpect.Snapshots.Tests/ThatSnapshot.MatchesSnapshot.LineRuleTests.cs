@@ -289,20 +289,23 @@ public sealed partial class ThatSnapshot
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				using CustomizationLifetime timeout =
-					Customize.aweXpect.Settings().DefaultRegexTimeout.Set(TimeSpan.FromMilliseconds(1));
 				string subject = new string('a', 40) + "!";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
+				{
+					using CustomizationLifetime timeout =
+						Customize.aweXpect.Settings().DefaultRegexTimeout.Set(TimeSpan.FromMilliseconds(1));
+					await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName)
 						.For.Lines().Containing(@"^(\w+\s?)*$").AsRegex().Ignore();
+				}
 
 				XunitException exception = await That(Act).Throws<XunitException>()
 					.WithMessage("""
 					             Expected that subject
 					             matches the snapshot "MyTests.MyTest",
 					             but the line rule with the pattern "^(\\w+\\s?)*$" did not complete within *. Simplify the pattern to avoid catastrophic backtracking
-					             """).AsWildcard();
+					             """).AsWildcard()
+					.Because("the short timeout only applies to the expectation, not to this wildcard match of its message");
 				await That(exception.InnerException).Is<RegexMatchTimeoutException>()
 					.Whose(timeoutException => timeoutException.MatchTimeout,
 						matchTimeout => matchTimeout.IsEqualTo(TimeSpan.FromMilliseconds(1)))
@@ -776,18 +779,21 @@ public sealed partial class ThatSnapshot
 			{
 				InMemorySnapshotStore store = new();
 				using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Store.Set(store);
-				using CustomizationLifetime timeout =
-					Customize.aweXpect.Settings().DefaultRegexTimeout.Set(TimeSpan.FromMilliseconds(1));
-				using CustomizationLifetime rules = Customize.aweXpect.Snapshots().Rules.Set([
-					SnapshotRule.For.Lines().Containing(@"^(\w+\s?)*$").AsRegex().Ignore(),
-				]);
 				string subject = new string('a', 40) + "!";
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName);
+				{
+					using CustomizationLifetime timeout =
+						Customize.aweXpect.Settings().DefaultRegexTimeout.Set(TimeSpan.FromMilliseconds(1));
+					using CustomizationLifetime rules = Customize.aweXpect.Snapshots().Rules.Set([
+						SnapshotRule.For.Lines().Containing(@"^(\w+\s?)*$").AsRegex().Ignore(),
+					]);
+					await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName);
+				}
 
 				XunitException exception = await That(Act).Throws<XunitException>()
-					.WithMessage("*the line rule with the pattern \"^(\\\\w+\\\\s?)*$\" did not complete*").AsWildcard();
+					.WithMessage("*the line rule with the pattern \"^(\\\\w+\\\\s?)*$\" did not complete*").AsWildcard()
+					.Because("the short timeout only applies to the expectation, not to this wildcard match of its message");
 				await That(exception.InnerException).Is<RegexMatchTimeoutException>();
 			}
 
