@@ -241,6 +241,46 @@ order {Guid_1} shipped {Date_2}
 The numbers are counted per subject in the order of appearance, and only after the maskings that come before, so
 `.Masking.Text(order.Id.ToString(), "<order-id>").Masking.Guids()` numbers only the other `Guid`s.
 
+### Members and types of an object
+
+In a [snapshot of an object](#matching-a-snapshot-of-an-object), members can be left out or masked by their name or
+their type, while the object is written, so that they don't depend on the written text:
+
+```csharp
+await Expect.That(order).MatchesSnapshot()
+    .Ignoring.Member("ETag")                      // left out with its name
+    .Ignoring.Type<DateTime>()                    // every DateTime left out
+    .Masking.Member("Id")                         // numbered: Id = {Id_1}
+    .Masking.Member("Customer.Token", "{token}")  // fixed replacement
+    .Masking.Type<Guid>();                        // numbered: {Guid_1}
+```
+
+```text title="Snapshot"
+Order {
+  Customer = Customer {
+    Id = {Id_1},
+    Reference = {Guid_1},
+    Token = {token}
+  },
+  Id = {Id_2},
+  Reference = {Guid_1}
+}
+```
+
+- A member name matches whole segments of the member path, ignoring the case, at any depth, like an ignored member of
+  an equivalency comparison: `Id` matches `Id`, `Customer.Id` and `Lines[0].Id`, but not `OrderId`; `Customer.Id` only
+  matches the `Id` of a `Customer`.
+- A type matches the declared or the runtime type of a value, including `Nullable<T>` and derived types:
+  `.Ignoring.Type<DateTime>()` also leaves out a `DateTime?` member and a `DateTime` in an `object` member.
+- A numbered placeholder is named after the last segment of the member name or after the type, and shares its numbers
+  with the other maskings of that name, e.g. `.Masking.Type<Guid>()` with `.Masking.Guids()`. A `null` value is not
+  masked.
+- Ignoring wins over masking, the first masking that matches a value replaces it, and the rules of the expectation come
+  before those for all snapshots. They apply before the maskings of the text.
+
+A `string` is compared as raw text and has no members, so a member or type rule on a `string` subject throws an
+`InvalidOperationException`.
+
 ### For all snapshots
 
 Maskings that apply to every snapshot are set with `Customize.aweXpect.Snapshots().Maskings`, e.g. in an assembly-level
@@ -257,8 +297,10 @@ Customize.aweXpect.Global.Snapshots().Maskings.Set([
 ```
 
 They are applied after the maskings of the expectation, in the order of the list, so a specific masking of the
-expectation goes before a general one for all snapshots. Setting the value replaces the list; to extend an outer
-setting, e.g. for one async flow, include it:
+expectation goes before a general one for all snapshots. Members and types are left out for all snapshots of objects
+with `Customize.aweXpect.Snapshots().Ignorings` and the factories of `SnapshotIgnoring`, e.g.
+`Ignorings.Set([SnapshotIgnoring.Type<DateTime>()])`. Member and type rules for all snapshots are ignored for a `string`
+subject. Setting a value replaces the list; to extend an outer setting, e.g. for one async flow, include it:
 
 ```csharp
 using (Customize.aweXpect.Snapshots().Maskings.Set([

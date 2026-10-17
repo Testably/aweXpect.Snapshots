@@ -47,6 +47,16 @@ public class SnapshotResult<TType, TThat> : AndOrResult<TType, TThat, SnapshotRe
 	public SnapshotMaskings<TType, TThat> Masking => new(this, _options);
 
 	/// <summary>
+	///     Leaves values out of a snapshot of an object, e.g. a member that is irrelevant for the test.
+	/// </summary>
+	/// <remarks>
+	///     The ignorings have the same names and semantics as the factories of <see cref="SnapshotIgnoring" /> for all
+	///     snapshots, e.g. <c>.Ignoring.Member("ETag")</c> or <c>.Ignoring.Type&lt;DateTime&gt;()</c>, and win over every
+	///     masking. On a <see cref="string" /> subject, which is compared as raw text, they throw.
+	/// </remarks>
+	public SnapshotIgnorings<TType, TThat> Ignoring => new(this, _options);
+
+	/// <summary>
 	///     Names the snapshot, so that several snapshots of the same test method, e.g. of the cases of a parameterized
 	///     test, are kept apart.
 	/// </summary>

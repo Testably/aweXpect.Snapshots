@@ -22,6 +22,9 @@ await Expect.That(html).MatchesSnapshot().Masking.Regex(@"id=\d+", "id=<id>");
 
 // replace every Guid and ISO 8601 date with a numbered placeholder ({Guid_1}, {Date_1}, …)
 await Expect.That(html).MatchesSnapshot().Masking.Guids().Masking.Dates();
+
+// leave out or mask members of an object by their name or type
+await Expect.That(order).MatchesSnapshot().Ignoring.Type<DateTime>().Masking.Member("Id");
 ```
 
 The snapshot is stored as `<Class>.<Method>.snapshot.txt` next to the test file, where `<Class>` is the name of the

@@ -63,7 +63,7 @@ public static class ThatSnapshot
 		this IThat<string?> subject,
 		[CallerFilePath] string callerFilePath = "",
 		[CallerMemberName] string callerMemberName = "")
-		=> AddSnapshot(subject, callerFilePath, callerMemberName, static value => value!);
+		=> AddSnapshot(subject, callerFilePath, callerMemberName, static (value, _) => value!);
 
 	/// <summary>
 	///     Verifies that the subject, written by the aweXpect formatter, matches the snapshot
@@ -92,7 +92,12 @@ public static class ThatSnapshot
 		[CallerFilePath] string callerFilePath = "",
 		[CallerMemberName] string callerMemberName = "")
 		=> AddSnapshot(subject, callerFilePath, callerMemberName,
-			static value => Formatter.Format(value, SnapshotFormatting));
+			static (value, formatValue) => Formatter.Format(value, formatValue is null
+				? SnapshotFormatting
+				: SnapshotFormatting with
+				{
+					FormatValue = formatValue,
+				}));
 
 	private static readonly FormattingOptions SnapshotFormatting = FormattingOptions.Indented("") with
 	{
@@ -109,8 +114,15 @@ public static class ThatSnapshot
 	/// </remarks>
 	private static readonly ConcurrentDictionary<SnapshotId, int> UsedSnapshots = new();
 
+	/// <param name="subject">The subject.</param>
+	/// <param name="callerFilePath">The path of the test file.</param>
+	/// <param name="callerMemberName">The name of the test method.</param>
+	/// <param name="format">
+	///     Writes the subject as text, with the decision about each nested value from the member and type rules, which
+	///     is <see langword="null" /> without such rules and which a <see cref="string" /> subject ignores.
+	/// </param>
 	private static SnapshotResult<T, IThat<T>> AddSnapshot<T>(IThat<T> subject, string callerFilePath,
-		string callerMemberName, Func<T, string> format)
+		string callerMemberName, Func<T, Func<FormattedValue, ValueFormatting>?, string> format)
 	{
 		if (!Path.IsPathRooted(callerFilePath))
 		{
@@ -128,8 +140,8 @@ public static class ThatSnapshot
 					SnapshotsAwexpectCustomizationExtensions.SnapshotsCustomization customization =
 						Customize.aweXpect.Snapshots();
 					return new MatchesSnapshotConstraint<T>(it, grammars, customization.Store.Get(),
-						customization.AcceptChanges.Get(), customization.Maskings.Get(), state.SourceFile,
-						state.MemberName, state.Options, state.Format);
+						customization.AcceptChanges.Get(), customization.Ignorings.Get(), customization.Maskings.Get(),
+						state.SourceFile, state.MemberName, state.Options, state.Format);
 				}),
 			subject,
 			options);
@@ -140,11 +152,12 @@ public static class ThatSnapshot
 		ExpectationGrammars grammars,
 		SnapshotStore store,
 		bool? acceptChanges,
+		IReadOnlyList<SnapshotIgnoring> globalIgnorings,
 		IReadOnlyList<SnapshotMasking> globalMaskings,
 		string sourceFile,
 		string memberName,
 		SnapshotOptions snapshotOptions,
-		Func<T, string> format)
+		Func<T, Func<FormattedValue, ValueFormatting>?, string> format)
 		: ConstraintResult.WithNotNullValue<T>(it, grammars),
 			IAsyncContextConstraint<T>
 	{
@@ -204,7 +217,10 @@ public static class ThatSnapshot
 			string value;
 			try
 			{
-				value = snapshotOptions.Mask(format(actual), globalMaskings);
+				SnapshotNumbering numbering = new();
+				value = snapshotOptions.Mask(
+					format(actual, snapshotOptions.CreateFormatValue(globalIgnorings, globalMaskings, numbering)),
+					globalMaskings, numbering);
 			}
 			catch (InsufficientExecutionStackException exception)
 			{
