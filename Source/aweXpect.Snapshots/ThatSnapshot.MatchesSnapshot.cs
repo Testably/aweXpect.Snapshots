@@ -64,13 +64,18 @@ public static class ThatSnapshot
 		private readonly StringEqualityOptions _options = new StringEqualityOptions("snapshot").IgnoringNewlineStyle();
 		private bool _isMatch;
 		private string? _pendingError;
+		private Exception? _readError;
 		private string? _snapshot;
+
+		/// <inheritdoc />
+		public override Exception? FailureCause => _readError;
 
 		public async ValueTask<ConstraintResult> IsMetBy(string? actual, CancellationToken cancellationToken)
 		{
 			Actual = actual;
 			_isMatch = false;
 			_pendingError = null;
+			_readError = null;
 			_snapshot = null;
 			if (actual is null)
 			{
@@ -79,13 +84,15 @@ public static class ThatSnapshot
 			}
 
 			_snapshot = ReadSnapshot();
+			if (_readError is not null)
+			{
+				Outcome = Outcome.FailureBothWays;
+				return this;
+			}
+
 			if (_snapshot is not null && await _options.AreConsideredEqual(actual, _snapshot))
 			{
-				if (File.Exists(pendingPath))
-				{
-					File.Delete(pendingPath);
-				}
-
+				DeletePending();
 				_isMatch = true;
 				Outcome = Outcome.Success;
 				return this;
@@ -97,8 +104,30 @@ public static class ThatSnapshot
 		}
 
 		/// <remarks>
+		///     The snapshot matched, so a leftover pending file that cannot be deleted does not change the result; it is
+		///     overwritten by the next mismatch anyway.
+		/// </remarks>
+		private void DeletePending()
+		{
+			try
+			{
+				if (File.Exists(pendingPath))
+				{
+					File.Delete(pendingPath);
+				}
+			}
+			catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+			{
+				// The pending file is only a leftover of an earlier run, see the remarks.
+			}
+		}
+
+		/// <remarks>
 		///     The final line break that <see cref="WritePending(string)" /> adds is removed, which an editor also adds
-		///     when it saves a snapshot without one.
+		///     when it saves a snapshot without one.<br />
+		///     A snapshot that cannot be read fails the expectation both ways instead of throwing, so that the failure
+		///     names the expectation and a negation cannot turn it into a success; the exception is kept as the
+		///     <see cref="FailureCause" />.
 		/// </remarks>
 		private string? ReadSnapshot()
 		{
@@ -107,7 +136,17 @@ public static class ThatSnapshot
 				return null;
 			}
 
-			string snapshot = File.ReadAllText(snapshotPath);
+			string snapshot;
+			try
+			{
+				snapshot = File.ReadAllText(snapshotPath);
+			}
+			catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+			{
+				_readError = exception;
+				return null;
+			}
+
 			if (snapshot.EndsWith("\r\n", StringComparison.Ordinal))
 			{
 				return snapshot.Substring(0, snapshot.Length - 2);
@@ -137,7 +176,7 @@ public static class ThatSnapshot
 
 		public override void AppendContexts(ResultContextCollector contexts)
 		{
-			if (Actual is null || _isMatch)
+			if (Actual is null || _isMatch || _readError is not null)
 			{
 				return;
 			}
@@ -155,7 +194,11 @@ public static class ThatSnapshot
 
 		protected override void AppendNormalResult(StringBuilder stringBuilder, string? indentation = null)
 		{
-			if (_snapshot is null)
+			if (_readError is not null)
+			{
+				AppendReadError(stringBuilder);
+			}
+			else if (_snapshot is null)
 			{
 				stringBuilder.Append("the snapshot did not exist");
 			}
@@ -172,7 +215,11 @@ public static class ThatSnapshot
 
 		protected override void AppendNegatedResult(StringBuilder stringBuilder, string? indentation = null)
 		{
-			if (_snapshot is null)
+			if (_readError is not null)
+			{
+				AppendReadError(stringBuilder);
+			}
+			else if (_snapshot is null)
 			{
 				stringBuilder.Append("the snapshot did not exist");
 			}
@@ -181,5 +228,8 @@ public static class ThatSnapshot
 				stringBuilder.Append(It).Append(" did");
 			}
 		}
+
+		private void AppendReadError(StringBuilder stringBuilder)
+			=> stringBuilder.Append("the snapshot could not be read: ").Append(_readError!.Message);
 	}
 }

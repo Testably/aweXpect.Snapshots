@@ -48,6 +48,28 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
+			public async Task WhenNegated_AndSnapshotCannotBeRead_ShouldFail()
+			{
+				using SnapshotDirectory directory = new();
+				directory.WriteSnapshot("bar");
+				using FileStream lockedSnapshot = new(directory.SnapshotPath, FileMode.Open, FileAccess.Read,
+					FileShare.None);
+				string subject = "foo";
+
+				async Task Act()
+					=> await That(subject).DoesNotComplyWith(it
+						=> it.MatchesSnapshot(directory.TestFilePath, SnapshotDirectory.MemberName));
+
+				await That(Act).Throws<XunitException>()
+					.WithMessage($"""
+					              Expected that subject
+					              does not match the snapshot "{directory.SnapshotPath}",
+					              but the snapshot could not be read: *
+					              """).AsWildcard()
+					.Because("a snapshot that cannot be read can neither be matched nor not be matched");
+			}
+
+			[Fact]
 			public async Task WhenNegated_AndSnapshotDiffers_ShouldSucceed()
 			{
 				using SnapshotDirectory directory = new();
@@ -106,6 +128,23 @@ public sealed partial class ThatSnapshot
 			}
 
 			[Fact]
+			public async Task WhenPendingSnapshotCannotBeDeleted_AndSnapshotMatches_ShouldSucceed()
+			{
+				using SnapshotDirectory directory = new();
+				directory.WriteSnapshot("foo");
+				directory.WritePending("bar");
+				using FileStream lockedPending = new(directory.PendingPath, FileMode.Open, FileAccess.Read,
+					FileShare.None);
+				string subject = "foo";
+
+				async Task Act()
+					=> await That(subject).MatchesSnapshot(directory.TestFilePath, SnapshotDirectory.MemberName);
+
+				await That(Act).DoesNotThrow()
+					.Because("the snapshot matched, and the pending snapshot is only a leftover of an earlier run");
+			}
+
+			[Fact]
 			public async Task WhenPendingSnapshotExists_AndSnapshotDiffers_ShouldOverwritePendingSnapshot()
 			{
 				using SnapshotDirectory directory = new();
@@ -152,6 +191,28 @@ public sealed partial class ThatSnapshot
 				File.Move(directory.PendingPath, directory.SnapshotPath);
 				await That(Act).DoesNotThrow()
 					.Because("renaming the pending snapshot accepts the subject unchanged");
+			}
+
+			[Fact]
+			public async Task WhenSnapshotCannotBeRead_ShouldFailWithoutWritingPendingSnapshot()
+			{
+				using SnapshotDirectory directory = new();
+				directory.WriteSnapshot("bar");
+				using FileStream lockedSnapshot = new(directory.SnapshotPath, FileMode.Open, FileAccess.Read,
+					FileShare.None);
+				string subject = "foo";
+
+				async Task Act()
+					=> await That(subject).MatchesSnapshot(directory.TestFilePath, SnapshotDirectory.MemberName);
+
+				await That(Act).Throws<XunitException>()
+					.WithMessage($"""
+					              Expected that subject
+					              matches the snapshot "{directory.SnapshotPath}",
+					              but the snapshot could not be read: *
+					              """).AsWildcard();
+				await That(File.Exists(directory.PendingPath)).IsFalse()
+					.Because("the subject could not be compared with the snapshot");
 			}
 
 			[Fact]

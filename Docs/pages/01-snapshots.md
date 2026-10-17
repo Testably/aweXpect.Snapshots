@@ -70,3 +70,7 @@ The snapshot files are encoded as UTF-8. The pending file ends with an additiona
 when the snapshot is read, so that an editor which adds a final line break does not change the snapshot.
 
 The newline style is ignored when comparing, because version control can change it when the snapshot is checked out.
+
+A snapshot that cannot be read, e.g. because another process locks it, fails the expectation with the reason, also when
+it is negated. A pending file that cannot be written is named as such in the failure, and a leftover pending file that
+cannot be deleted does not fail a matching snapshot.
