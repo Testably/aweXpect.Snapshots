@@ -197,7 +197,7 @@ public sealed class DiskStoreTests
 		project.CreateFile("AlbumTests.cs");
 		File.WriteAllBytes(project.GetFullPath("AlbumTests.Cover.snapshot.png"), [0x89, 0x50, 0x4E, 0x47,]);
 		File.WriteAllBytes(project.GetFullPath("AlbumTests.Cover.snapshot.pending.png"), [0x00,]);
-		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().AcceptChanges.Set(true);
+		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 
 		async Task Act() => await OrphanedSnapshots.CheckAsync(true);
 

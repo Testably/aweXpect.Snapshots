@@ -434,7 +434,7 @@ public static partial class ThatSnapshot
 			SnapshotAcceptance acceptance = snapshotOptions.Acceptance ?? settings.Acceptance ??
 			                                AcceptEnvironment.GetAcceptance();
 			_isAccepted = acceptance == SnapshotAcceptance.All ||
-			              (acceptance == SnapshotAcceptance.New && _snapshot is null);
+			              (acceptance == SnapshotAcceptance.New && !_hasSnapshot);
 			_isMismatch = true;
 			context.OnCompleted(WriteMismatchAsync);
 			Outcome = Outcome.FailureBothWays;

@@ -790,7 +790,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(directory.TestFilePath, SnapshotDirectory.MemberName)
-						.WithExtension("png").AcceptingChanges();
+						.WithExtension("png").Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage($"""

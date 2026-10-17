@@ -162,7 +162,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).WithExtension("png")
-						.AcceptingChanges();
+						.Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("""
@@ -320,7 +320,7 @@ public sealed partial class ThatSnapshot
 						.WithExtension("png")
 						.NamedAfter(title)
 						.UniqueFor.OperatingSystem()
-						.AcceptingChanges(false);
+						.Accepting(SnapshotAcceptance.None);
 
 				await That(Act).Throws<XunitException>();
 				await That(store.MismatchBytes.Keys).IsEqualTo(new[]
@@ -699,7 +699,7 @@ public sealed partial class ThatSnapshot
 				FileInfo subject = new(path);
 
 				async Task Act()
-					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).AcceptingChanges();
+					=> await That(subject).MatchesSnapshot(Id.SourceFile, Id.MemberName).Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage("*Accepted snapshot:*").AsWildcard();
