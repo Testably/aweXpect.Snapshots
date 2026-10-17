@@ -151,7 +151,7 @@ internal sealed class InMemorySnapshotStore : SnapshotStore
 				return text.Substring(0, text.Length - 2);
 			}
 
-			return text.EndsWith("\n", StringComparison.Ordinal) ? text.Substring(0, text.Length - 1) : text;
+			return text.Length > 0 && text[text.Length - 1] == '\n' ? text.Substring(0, text.Length - 1) : text;
 		}
 	}
 }
