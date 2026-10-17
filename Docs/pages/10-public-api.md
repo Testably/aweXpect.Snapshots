@@ -31,5 +31,11 @@ its target framework:
 await Expect.That(Assembly.LoadFile(path)).MatchesPublicApiSnapshot().Named("netstandard2.0");
 ```
 
+The types in the signatures are resolved from the assemblies next to the assembly, in the output of the tests, of the
+.NET version it targets and of the current runtime. A build for a newer .NET than the tests run on needs the .NET SDK of
+that version, which installs its reference assemblies. When a referenced assembly cannot be resolved, or only in a lower
+version, the expectation throws an `InvalidOperationException` that names it, instead of writing a public API that
+differs from machine to machine.
+
 Otherwise it behaves like [`MatchesSnapshot()` for strings](01-matching-snapshots.md#strings), e.g. for the files and
 [accepting changes](02-accepting-snapshots.md).

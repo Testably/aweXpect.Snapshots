@@ -96,10 +96,10 @@ public static class PublicApiWriter
 	];
 
 	/// <summary>
-	///     The references of the files that were read, which are <see langword="null" /> for native files, so that each
-	///     file is read only once per process.
+	///     The references of the files that were read, which are <see langword="null" /> for files without an assembly,
+	///     e.g. native ones, so that each file is read only once per process.
 	/// </summary>
-	private static readonly ConcurrentDictionary<string, MetadataReference?> References =
+	private static readonly ConcurrentDictionary<string, (Version Version, MetadataReference Reference)?> References =
 		new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
@@ -107,9 +107,12 @@ public static class PublicApiWriter
 	/// </summary>
 	/// <remarks>
 	///     The types in signatures are resolved from the assemblies next to it, of the application, of the .NET version
-	///     it targets (when the .NET SDK is installed) and of the current runtime; a type that cannot be resolved is
-	///     written with its full name, but without the arguments of an attribute.
+	///     it targets (when the .NET SDK is installed) and of the current runtime.
 	/// </remarks>
+	/// <exception cref="InvalidOperationException">
+	///     An assembly that the <paramref name="assembly" /> references cannot be resolved, or only in a lower version, which
+	///     would change the written public API.
+	/// </exception>
 	public static string Write(Assembly assembly)
 	{
 		if (assembly.IsDynamic || string.IsNullOrEmpty(assembly.Location))
@@ -128,6 +131,7 @@ public static class PublicApiWriter
 		CSharpCompilation compilation = CSharpCompilation.Create("PublicApi",
 			references: GetReferences(assemblyFile, referencePack).Append(target));
 		IAssemblySymbol assembly = (IAssemblySymbol)compilation.GetAssemblyOrModuleSymbol(target)!;
+		ThrowIfReferencesAreUnresolved(assemblyFile, compilation, assembly);
 
 		StringBuilder sb = new();
 		foreach (string attribute in Attributes(assembly))
@@ -156,8 +160,38 @@ public static class PublicApiWriter
 	}
 
 	/// <remarks>
+	///     Roslyn binds a reference to a lower version when no other is found, e.g. the newer .NET of the assembly to the
+	///     current runtime when its reference pack is missing.
+	/// </remarks>
+	private static void ThrowIfReferencesAreUnresolved(string assemblyFile, Compilation compilation,
+		IAssemblySymbol assembly)
+	{
+		HashSet<IAssemblySymbol> resolved = new(compilation.References
+			.Select(compilation.GetAssemblyOrModuleSymbol)
+			.OfType<IAssemblySymbol>(), SymbolEqualityComparer.Default);
+		string[] unresolved = assembly.Modules
+			.SelectMany(module => module.ReferencedAssemblies.Zip(module.ReferencedAssemblySymbols,
+				(identity, symbol) => (Identity: identity, Symbol: symbol)))
+			.Where(reference => !resolved.Contains(reference.Symbol) ||
+			                    reference.Symbol.Identity.Version < reference.Identity.Version)
+			.Select(reference => resolved.Contains(reference.Symbol)
+				? $"{reference.Identity.GetDisplayName()} (only version {reference.Symbol.Identity.Version} was found)"
+				: reference.Identity.GetDisplayName())
+			.ToArray();
+		if (unresolved.Length > 0)
+		{
+			throw new InvalidOperationException(
+				$"The public API of '{Path.GetFileName(assemblyFile)}' cannot be written, because its references " +
+				$"{string.Join(", ", unresolved.Select(reference => $"'{reference}'"))} could not be resolved. " +
+				"Copy them next to the assembly or into the output of the tests, or install the .NET SDK of its target framework.");
+		}
+	}
+
+	/// <remarks>
 	///     The build output of a library does not contain its dependencies, which the application, e.g. the tests,
-	///     does. The .NET Framework keeps the facades, e.g. <c>netstandard.dll</c>, in a subdirectory of the runtime.
+	///     does. The .NET Framework keeps the facades, e.g. <c>netstandard.dll</c>, in a subdirectory of the runtime.<br />
+	///     Of the files with the same name, the highest version is used, as the application can contain an older package
+	///     of an assembly that is part of the newer .NET the assembly targets, e.g. <c>System.Reflection.Metadata</c>.
 	/// </remarks>
 	private static IEnumerable<MetadataReference> GetReferences(string assemblyFile, string? referencePack)
 	{
@@ -174,8 +208,12 @@ public static class PublicApiWriter
 			.SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll"))
 			.Where(file => !string.Equals(Path.GetFileName(file), assemblyName, StringComparison.OrdinalIgnoreCase))
 			.GroupBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-			.Select(files => References.GetOrAdd(files.First(), file
-				=> IsManagedAssembly(file) ? MetadataReference.CreateFromFile(file) : null))
+			.Select(files => files
+				.Select(file => References.GetOrAdd(file, ReadReference))
+				.OfType<(Version Version, MetadataReference Reference)>()
+				.OrderByDescending(reference => reference.Version)
+				.Select(reference => reference.Reference)
+				.FirstOrDefault())
 			.OfType<MetadataReference>();
 	}
 
@@ -246,11 +284,16 @@ public static class PublicApiWriter
 		return null;
 	}
 
-	private static bool IsManagedAssembly(string file)
+	private static (Version Version, MetadataReference Reference)? ReadReference(string file)
 	{
 		using FileStream stream = File.OpenRead(file);
 		using PEReader reader = new(stream);
-		return reader.HasMetadata;
+		if (!reader.HasMetadata || reader.GetMetadataReader() is not { IsAssembly: true, } metadata)
+		{
+			return null;
+		}
+
+		return (metadata.GetAssemblyDefinition().Version, MetadataReference.CreateFromFile(file));
 	}
 
 	private static IEnumerable<INamespaceSymbol> GetNamespaces(INamespaceSymbol ns)
@@ -378,14 +421,13 @@ public static class PublicApiWriter
 	/// <summary>
 	///     The display omits the modifiers of interface members.
 	/// </summary>
-	private static string InterfaceModifiers(ISymbol member)
-		=> member.ContainingType.TypeKind != TypeKind.Interface || !member.IsStatic
-			? ""
-			: member.IsAbstract
-				? "static abstract "
-				: member.IsVirtual
-					? "static virtual "
-					: "static ";
+	private static string InterfaceModifiers(ISymbol member) => member switch
+	{
+		{ ContainingType.TypeKind: not TypeKind.Interface, } or { IsStatic: false, } => "",
+		{ IsAbstract: true, } => "static abstract ",
+		{ IsVirtual: true, } => "static virtual ",
+		_ => "static ",
+	};
 
 	/// <summary>
 	///     The display does not include the attributes of the accessors, which are inserted before their keywords.

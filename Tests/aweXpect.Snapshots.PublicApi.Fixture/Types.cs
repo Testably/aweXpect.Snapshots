@@ -79,7 +79,7 @@ public interface IPlayer<in TAlbum> where TAlbum : Album
 #if NET
 public interface IParser<TSelf> where TSelf : IParser<TSelf>
 {
-	static abstract string Format { get; }
+	static abstract TSelf Default { get; }
 	static abstract TSelf Parse(string text);
 	static virtual bool CanParse(string text) => true;
 }
