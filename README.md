@@ -45,6 +45,8 @@ only add the missing ones).
 build server, and deletes them while accepting all changes.
 [Reporters](Docs/pages/08-reporters.md) are told about every missing, different or matching snapshot, e.g. to open a
 diff tool.
+[Comparers](Docs/pages/09-comparers.md) decide whether a value matches its snapshot instead of the built-in
+comparison, e.g. an image comparer that tolerates small differences of single pixels.
 
 ## Overview
 
