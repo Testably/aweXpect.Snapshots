@@ -114,7 +114,8 @@ internal sealed class DiskSnapshotStore : SnapshotStore
 		for (int i = 0; i < part.Length; i++)
 		{
 			char character = part[i];
-			if (char.IsControl(character) || "<>:\"/\\|?*%.".IndexOf(character) >= 0)
+			if (char.IsControl(character) ||
+			    character is '<' or '>' or ':' or '"' or '/' or '\\' or '|' or '?' or '*' or '%' or '.')
 			{
 				escaped ??= new StringBuilder(part, 0, i, part.Length + 8);
 				escaped.Append('%').Append(((int)character).ToString("X2", CultureInfo.InvariantCulture));
