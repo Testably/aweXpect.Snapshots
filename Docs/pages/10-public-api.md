@@ -37,5 +37,9 @@ that version, which installs its reference assemblies. When a referenced assembl
 version, the expectation throws an `InvalidOperationException` that names it, instead of writing a public API that
 differs from machine to machine.
 
+The assembly is read with Roslyn, so the package depends on a recent version of `Microsoft.CodeAnalysis.CSharp` that
+reads all extension members correctly. A test project that needs an older Roslyn, e.g. for testing an analyzer, cannot
+use the package, so verify the public API in a separate test project.
+
 Otherwise it behaves like [`MatchesSnapshot()` for strings](01-matching-snapshots.md#strings), e.g. for the files and
 [accepting changes](02-accepting-snapshots.md).
