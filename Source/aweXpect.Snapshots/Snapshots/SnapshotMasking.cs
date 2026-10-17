@@ -207,9 +207,9 @@ public sealed class SnapshotMasking
 	/// </summary>
 	/// <remarks>
 	///     The <paramref name="memberName" /> matches whole segments of the path, ignoring the case, at any depth, like an
-	///     ignored member of an equivalency comparison: <c>Id</c> matches <c>Id</c>, <c>Customer.Id</c> and
-	///     <c>Lines[0].Id</c>, but not <c>PaidAt</c>. The placeholder is named after the last segment, e.g. <c>Id</c> for
-	///     <c>Customer.Id</c>, and shares its numbers with the other maskings of that name. A <see langword="null" />
+	///     ignored member of an equivalency comparison: <c>Id</c> matches <c>Id</c>, <c>Artist.Id</c> and
+	///     <c>Tracks[0].Id</c>, but not <c>TrackId</c>. The placeholder is named after the last segment, e.g. <c>Id</c> for
+	///     <c>Artist.Id</c>, and shares its numbers with the other maskings of that name. A <see langword="null" />
 	///     value is not masked.
 	/// </remarks>
 	public static SnapshotMasking Member(string memberName)

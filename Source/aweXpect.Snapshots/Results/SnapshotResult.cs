@@ -41,7 +41,7 @@ public class SnapshotResult<TType, TThat> : AndOrResult<TType, TThat, SnapshotRe
 	/// </summary>
 	/// <remarks>
 	///     The maskings have the same names and semantics as the factories of <see cref="SnapshotMasking" /> for all
-	///     snapshots, e.g. <c>.Masking.Text(order.Id.ToString(), "&lt;order-id&gt;")</c> or <c>.Masking.Guids()</c>. They are applied
+	///     snapshots, e.g. <c>.Masking.Text(album.Id.ToString(), "&lt;album-id&gt;")</c> or <c>.Masking.Guids()</c>. They are applied
 	///     in the order in which they are added, before the maskings for all snapshots.
 	/// </remarks>
 	public SnapshotMaskings<TType, TThat> Masking => new(this, _options);

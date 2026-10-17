@@ -27,11 +27,11 @@ internal sealed class SnapshotValueRule
 
 	/// <summary>
 	///     Selects the members whose path ends with the <paramref name="memberName" /> on whole segments, ignoring the
-	///     case, like an ignored member of an equivalency comparison, e.g. <c>Id</c>, <c>Customer.Id</c> or
-	///     <c>Lines[0].Id</c>.
+	///     case, like an ignored member of an equivalency comparison, e.g. <c>Id</c>, <c>Artist.Id</c> or
+	///     <c>Tracks[0].Id</c>.
 	/// </summary>
 	/// <remarks>
-	///     The placeholder is named after the last segment, e.g. <c>Id</c> for <c>Customer.Id</c>, so that the same value
+	///     The placeholder is named after the last segment, e.g. <c>Id</c> for <c>Artist.Id</c>, so that the same value
 	///     in several members of that name keeps the same number.
 	/// </remarks>
 	public static SnapshotValueRule ForMember(string memberName)

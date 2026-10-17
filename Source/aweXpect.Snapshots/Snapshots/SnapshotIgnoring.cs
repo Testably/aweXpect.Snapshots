@@ -26,8 +26,8 @@ public sealed class SnapshotIgnoring
 	/// </summary>
 	/// <remarks>
 	///     The <paramref name="memberName" /> matches whole segments of the path, ignoring the case, at any depth, like an
-	///     ignored member of an equivalency comparison: <c>Id</c> matches <c>Id</c>, <c>Customer.Id</c> and
-	///     <c>Lines[0].Id</c>, but not <c>PaidAt</c>; <c>Customer.Id</c> only matches the <c>Id</c> of a <c>Customer</c>.
+	///     ignored member of an equivalency comparison: <c>Id</c> matches <c>Id</c>, <c>Artist.Id</c> and
+	///     <c>Tracks[0].Id</c>, but not <c>TrackId</c>; <c>Artist.Id</c> only matches the <c>Id</c> of an <c>Artist</c>.
 	/// </remarks>
 	public static SnapshotIgnoring Member(string memberName)
 		=> new(SnapshotValueRule.ForMember(memberName));
