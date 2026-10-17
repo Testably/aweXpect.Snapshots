@@ -25,7 +25,7 @@ internal sealed class SnapshotNumbering
 	///     Whether the <paramref name="template" /> contains <see cref="Number" />, so that it needs the key of the value.
 	/// </summary>
 	public static bool IsNumbered(string template)
-		=> template.IndexOf(Number, StringComparison.Ordinal) >= 0;
+		=> template.Contains(Number);
 
 	/// <summary>
 	///     Returns the name of a numbered placeholder as a template, e.g. <c>{Guid_{0}}</c>.
