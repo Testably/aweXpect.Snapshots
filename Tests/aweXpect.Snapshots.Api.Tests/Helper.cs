@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -63,6 +64,19 @@ public static class Helper
 	private static string CombinedPaths(params string[] paths) =>
 		Path.GetFullPath(Path.Combine(paths.Prepend(GetSolutionDirectory()).ToArray()));
 
-	private static string GetSolutionDirectory([CallerFilePath] string path = "") =>
-		Path.Combine(Path.GetDirectoryName(path)!, "..", "..");
+	/// <remarks>
+	///     The directory is searched from the output directory of the tests, as a deterministic build maps the paths
+	///     that the compiler records, e.g. with <see cref="CallerFilePathAttribute" />, to <c>/_/</c>.
+	/// </remarks>
+	private static string GetSolutionDirectory()
+	{
+		DirectoryInfo? directory = new(AppContext.BaseDirectory);
+		while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "aweXpect.Snapshots.slnx")))
+		{
+			directory = directory.Parent;
+		}
+
+		return directory?.FullName ?? throw new DirectoryNotFoundException(
+			$"No directory above '{AppContext.BaseDirectory}' contains the solution 'aweXpect.Snapshots.slnx'.");
+	}
 }
