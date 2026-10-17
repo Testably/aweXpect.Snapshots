@@ -156,8 +156,7 @@ public sealed class SnapshotMasking
 	/// </summary>
 	/// <remarks>
 	///     A <see cref="Guid" /> is matched in the format <c>"D"</c> (<c>3f2504e0-4f89-11d3-9a0c-0305e82c3301</c>) in
-	///     upper or lower case, also inside braces or parentheses, which are kept, so that a <see cref="Guid" /> in braces
-	///     becomes <c>{{Guid_1}}</c>. The format <c>"N"</c> without hyphens
+	///     upper or lower case, also inside braces or parentheses, which are kept. The format <c>"N"</c> without hyphens
 	///     is not matched, as it cannot be told apart from a hash; mask it with <see cref="Regex(string, string)" /> if needed.<br />
 	///     The numbers are counted per subject in the order of appearance, after the maskings that come before.
 	/// </remarks>
