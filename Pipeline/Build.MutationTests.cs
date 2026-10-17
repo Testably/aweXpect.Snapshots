@@ -45,7 +45,7 @@ partial class Build
 			Dictionary<Project, Project[]> projects = new()
 			{
 				{
-					Solution.aweXpect_Snapshots, [Solution.Tests.aweXpect_Snapshots_Tests,]
+					Solution.aweXpect_Snapshots, [Solution.Tests.aweXpect_Snapshots_Tests, Solution.Tests.aweXpect_Snapshots_SourceRoots_Tests,]
 				},
 			};
 
@@ -146,7 +146,7 @@ partial class Build
 			Dictionary<Project, Project[]> projects = new()
 			{
 				{
-					Solution.aweXpect_Snapshots, [Solution.Tests.aweXpect_Snapshots_Tests,]
+					Solution.aweXpect_Snapshots, [Solution.Tests.aweXpect_Snapshots_Tests, Solution.Tests.aweXpect_Snapshots_SourceRoots_Tests,]
 				},
 			};
 			var apiKey = Environment.GetEnvironmentVariable("STRYKER_DASHBOARD_API_KEY");
