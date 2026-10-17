@@ -113,7 +113,7 @@ public static class ThatSnapshot
 				return snapshot.Substring(0, snapshot.Length - 2);
 			}
 
-			return snapshot.EndsWith("\n", StringComparison.Ordinal)
+			return snapshot.Length > 0 && snapshot[snapshot.Length - 1] == '\n'
 				? snapshot.Substring(0, snapshot.Length - 1)
 				: snapshot;
 		}
