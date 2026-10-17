@@ -38,8 +38,8 @@ build server, and deletes them while accepting changes.
 
 | Expectation                                                                      | Subject  | Summary                                                 |
 |----------------------------------------------------------------------------------|----------|---------------------------------------------------------|
-| [`MatchesSnapshot`](Docs/pages/01-snapshots.md#matching-a-snapshot)              | `string` | matches the snapshot stored next to the test            |
-| [`MatchesSnapshot`](Docs/pages/01-snapshots.md#matching-a-snapshot-of-an-object) | any `T`  | matches the snapshot of the object, written by aweXpect |
+| [`MatchesSnapshot`](Docs/pages/01-matching-snapshots.md#strings)              | `string` | matches the snapshot stored next to the test            |
+| [`MatchesSnapshot`](Docs/pages/01-matching-snapshots.md#objects) | any `T`  | matches the snapshot of the object, written by aweXpect |
 
 ## Documentation
 
