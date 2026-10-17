@@ -381,21 +381,7 @@ public static partial class ThatSnapshot
 			CancellationToken cancellationToken)
 		{
 			Actual = actual;
-			_acceptError = null;
-			_actualContent = null;
-			_compareError = null;
-			_difference = null;
-			_hasSnapshot = false;
-			_hasSubjectError = false;
-			_hasWritten = false;
-			_isAccepted = false;
-			_isMatch = false;
-			_isMismatch = false;
-			_isUsedForAnotherValue = false;
-			_snapshotContent = null;
-			_usedExtension = null;
-			_writeError = null;
-			_readError = null;
+			ResetState();
 			if (actual is null)
 			{
 				Outcome = Outcome.FailureBothWays;
@@ -413,30 +399,10 @@ public static partial class ThatSnapshot
 			SnapshotContent actualContent = new(content, ActualText);
 			_actualContent = actualContent;
 			SnapshotId id = Id;
-			int contentHashCode = GetHashCode(content);
-			bool hasComparers = snapshotOptions.Comparer is not null || settings.Comparers.Count > 0;
-			(string extension, int hashCode, SnapshotContent? firstContent) = UsedSnapshots.GetOrAdd(
-				id with { Extension = SnapshotId.DefaultExtension, },
-				(id.Extension, contentHashCode, hasComparers ? actualContent : null));
-			if (extension != id.Extension)
+			if (!await IsFirstUseOfTheSnapshotAsync(id, content, actualContent, cancellationToken))
 			{
-				_usedExtension = extension;
 				Outcome = Outcome.FailureBothWays;
 				return this;
-			}
-
-			if (hashCode != contentHashCode)
-			{
-				SnapshotComparison? comparison = firstContent is null
-					? null
-					: await CompareAsync(new SnapshotComparisonContext(id, firstContent, actualContent),
-						cancellationToken);
-				_isUsedForAnotherValue = _compareError is null && comparison?.IsEqual != true;
-				if (_compareError is not null || _isUsedForAnotherValue)
-				{
-					Outcome = Outcome.FailureBothWays;
-					return this;
-				}
 			}
 
 			byte[]? snapshot;
@@ -454,17 +420,7 @@ public static partial class ThatSnapshot
 			_hasSnapshot = snapshot is not null;
 			if (snapshot is not null && await MatchesAsync(id, snapshot, actualContent, cancellationToken))
 			{
-				await ReportAsync(() => new SnapshotMatch(id, settings.Store),
-					static (reporter, match, token) => reporter.OnMatchAsync(match, token), cancellationToken);
-				try
-				{
-					await settings.Store.RecordMatchAsync(id, cancellationToken);
-				}
-				catch (Exception exception) when (IsNotCanceled(exception, cancellationToken))
-				{
-					// The snapshot matched, see the remarks.
-				}
-
+				await RecordMatchAsync(id, cancellationToken);
 				_isMatch = true;
 				Outcome = Outcome.Success;
 				return this;
@@ -484,6 +440,72 @@ public static partial class ThatSnapshot
 			context.OnCompleted(WriteMismatchAsync);
 			Outcome = Outcome.FailureBothWays;
 			return this;
+		}
+
+		private void ResetState()
+		{
+			_acceptError = null;
+			_actualContent = null;
+			_compareError = null;
+			_difference = null;
+			_hasSnapshot = false;
+			_hasSubjectError = false;
+			_hasWritten = false;
+			_isAccepted = false;
+			_isMatch = false;
+			_isMismatch = false;
+			_isUsedForAnotherValue = false;
+			_snapshotContent = null;
+			_usedExtension = null;
+			_writeError = null;
+			_readError = null;
+		}
+
+		/// <summary>
+		///     Whether the snapshot was not yet used in this test run for another value, or another extension.
+		/// </summary>
+		/// <remarks>
+		///     Identical bytes are recognized by their hash. A different value is only allowed when a comparer considers
+		///     it equal to the first value of the run, which is only kept while comparers are in use.
+		/// </remarks>
+		private async ValueTask<bool> IsFirstUseOfTheSnapshotAsync(SnapshotId id, byte[] content,
+			SnapshotContent actualContent, CancellationToken cancellationToken)
+		{
+			int contentHashCode = GetHashCode(content);
+			bool hasComparers = snapshotOptions.Comparer is not null || settings.Comparers.Count > 0;
+			(string extension, int hashCode, SnapshotContent? firstContent) = UsedSnapshots.GetOrAdd(
+				id with { Extension = SnapshotId.DefaultExtension, },
+				(id.Extension, contentHashCode, hasComparers ? actualContent : null));
+			if (extension != id.Extension)
+			{
+				_usedExtension = extension;
+				return false;
+			}
+
+			if (hashCode == contentHashCode)
+			{
+				return true;
+			}
+
+			SnapshotComparison? comparison = firstContent is null
+				? null
+				: await CompareAsync(new SnapshotComparisonContext(id, firstContent, actualContent), cancellationToken);
+			_isUsedForAnotherValue = _compareError is null && comparison?.IsEqual != true;
+			return _compareError is null && !_isUsedForAnotherValue;
+		}
+
+		private async ValueTask RecordMatchAsync(SnapshotId id, CancellationToken cancellationToken)
+		{
+			await ReportAsync(() => new SnapshotMatch(id, settings.Store),
+				static (reporter, match, token) => reporter.OnMatchAsync(match, token), cancellationToken);
+			try
+			{
+				await settings.Store.RecordMatchAsync(id, cancellationToken);
+			}
+			catch (Exception exception) when (IsNotCanceled(exception, cancellationToken))
+			{
+				// The snapshot matched, see the remarks of IsMetBy.
+			}
 		}
 
 		/// <summary>
