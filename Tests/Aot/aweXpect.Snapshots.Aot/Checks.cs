@@ -171,7 +171,7 @@ internal static class Checks
 	/// </remarks>
 	private static async Task JsonMatchesItsSnapshot()
 		=> await That("{ \"title\": \"Abbey Road\", \"year\": 1969 }").MatchesSnapshot().WithExtension("json")
-			.AcceptingChanges(false);
+			.Accepting(SnapshotAcceptance.None);
 
 	private static async Task NamedAfterMatchesItsSnapshot(string title, int year)
 		=> await That($"{title} ({year})").MatchesSnapshot().NamedAfter(title, year).Accepting(SnapshotAcceptance.None);

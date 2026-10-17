@@ -154,7 +154,7 @@ public sealed class DiskStoreTests
 		project.CreateFile("AlbumTests.Describes.snapshot.pending.json", "[]");
 		project.CreateFile("AlbumTests.Describes.snapshot.txt", "Abbey Road");
 		await That("Abbey Road").MatchesSnapshot(project.CallerFilePath("AlbumTests.cs"), "Describes");
-		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().AcceptChanges.Set(true);
+		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 
 		async Task Act() => await OrphanedSnapshots.CheckAsync(true);
 
@@ -177,7 +177,7 @@ public sealed class DiskStoreTests
 		project.CreateFile("AlbumTests.Describes.snapshot.pending.xml", "<album />");
 		project.CreateFile("AlbumTests.Describes.snapshot.txt", "Abbey Road");
 		await That("Abbey Road").MatchesSnapshot(project.CallerFilePath("AlbumTests.cs"), "Describes");
-		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().AcceptChanges.Set(true);
+		using CustomizationLifetime _ = Customize.aweXpect.Snapshots().Acceptance.Set(SnapshotAcceptance.All);
 
 		async Task Act() => await OrphanedSnapshots.CheckAsync(true);
 

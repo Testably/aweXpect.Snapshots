@@ -457,7 +457,7 @@ public sealed partial class ThatSnapshot
 
 				async Task Act()
 					=> await That(subject).MatchesSnapshot(directory.TestFilePath, SnapshotDirectory.MemberName)
-						.WithExtension("xml").AcceptingChanges();
+						.WithExtension("xml").Accepting(SnapshotAcceptance.All);
 
 				await That(Act).Throws<XunitException>()
 					.WithMessage($"*Accepted snapshot:*{snapshotPath}").AsWildcard()
