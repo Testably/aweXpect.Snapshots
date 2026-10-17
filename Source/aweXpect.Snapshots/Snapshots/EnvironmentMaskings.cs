@@ -58,7 +58,7 @@ internal static class EnvironmentMaskings
 		(string Placeholder, string? Path)[] paths =
 		[
 			("{ProjectDirectory}", SourceRoots.GetProjectDirectory(sourceFile)),
-			.. SourceRoots.GetDistinctSourceRoots().Select(sourceRoot => ("{SourceRoot}", (string?)sourceRoot)),
+			.. SourceRoots.GetDistinctSourceRoots().Select(sourceRoot => ("{SourceRoot}", sourceRoot)),
 			("{OutputDirectory}", AppContext.BaseDirectory),
 			("{TempPath}", Path.GetTempPath()),
 			("{UserProfile}", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
