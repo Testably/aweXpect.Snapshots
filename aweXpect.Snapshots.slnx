@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/aweXpect.Snapshots.Api.Tests/aweXpect.Snapshots.Api.Tests.csproj" />
+    <Project Path="Tests/aweXpect.Snapshots.Orphans.Tests/aweXpect.Snapshots.Orphans.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.SourceRoots.Tests/aweXpect.Snapshots.SourceRoots.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.Tests/aweXpect.Snapshots.Tests.csproj" />
   </Folder>
