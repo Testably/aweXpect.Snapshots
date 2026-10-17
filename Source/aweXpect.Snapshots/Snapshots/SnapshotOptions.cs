@@ -185,10 +185,10 @@ internal sealed class SnapshotOptions
 
 			foreach (SnapshotMasking masking in maskings)
 			{
-				SnapshotPlaceholder? replacement = masking.GetReplacement(value, numbering);
+				ValueFormatting? replacement = masking.GetReplacement(value, numbering);
 				if (replacement is not null)
 				{
-					return ValueFormatting.Replace(replacement);
+					return replacement;
 				}
 			}
 

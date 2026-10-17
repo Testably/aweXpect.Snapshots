@@ -80,9 +80,9 @@ internal sealed class SnapshotValueRule
 	///     <c>a =&gt; a.Artist.Name</c> could not be told apart from the <c>Name</c> of an <c>Artist</c> anywhere else.
 	///     The placeholder is named after the member.
 	/// </remarks>
-	public static SnapshotValueRule ForMemberOf<T>(Expression<Func<T, object?>> member)
+	public static SnapshotValueRule ForMemberOf<T, TMember>(Expression<Func<T, TMember>> member)
 	{
-		string memberName = GetMemberName(member);
+		string memberName = GetMemberName<T>(member);
 		return new SnapshotValueRule(value => value.Kind == FormattedValueKind.Member &&
 		                                      string.Equals(value.Name, memberName, StringComparison.Ordinal) &&
 		                                      typeof(T).IsAssignableFrom(value.DeclaringType), memberName);
@@ -220,7 +220,7 @@ internal sealed class SnapshotValueRule
 	/// <remarks>
 	///     A nested member, also of a cast parameter, gets its own message, which names the type that declares it.
 	/// </remarks>
-	private static string GetMemberName<T>(Expression<Func<T, object?>> member)
+	private static string GetMemberName<T>(LambdaExpression member)
 	{
 		if (member is null)
 		{

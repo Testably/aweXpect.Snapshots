@@ -26,6 +26,8 @@ internal static class Checks
 			() => ShouldPass(ObjectWithRulesMatchesItsSnapshot)),
 		new("an object with members selected by expression and empty collections left out matching its snapshot passes",
 			() => ShouldPass(ObjectWithMemberOfAndEmptyCollectionsMatchesItsSnapshot)),
+		new("an object with converted members matching its snapshot passes",
+			() => ShouldPass(ObjectWithConvertedMembersMatchesItsSnapshot)),
 		new("a record matching its snapshot is written member-wise",
 			() => ShouldPass(RecordMatchesItsSnapshot)),
 		new("a snapshot named after arguments matching its snapshot passes",
@@ -81,6 +83,21 @@ internal static class Checks
 			.Ignoring.EmptyCollections()
 			.Ignoring.MemberOf<Playlist>(p => p.Id)
 			.Masking.MemberOf<Song>(s => s.Id)
+			.AcceptingChanges(false);
+
+	/// <remarks>
+	///     The expressions are only read and the converters only called, never compiled, and the anonymous type that a
+	///     converter returns is written member-wise, as the source generator registers it at the call site.
+	/// </remarks>
+	private static async Task ObjectWithConvertedMembersMatchesItsSnapshot()
+		=> await That(new Concert
+			{
+				Date = new DateTime(1969, 1, 30, 12, 30, 0),
+				Duration = TimeSpan.FromMinutes(42),
+				Venue = "Apple Corps rooftop",
+			}).MatchesSnapshot()
+			.Masking.MemberOf((Concert c) => c.Date, date => new { date.Year, date.Month, })
+			.Masking.MemberOf((Concert c) => c.Duration, duration => Math.Round(duration.TotalMinutes))
 			.AcceptingChanges(false);
 
 	/// <remarks>

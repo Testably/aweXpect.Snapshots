@@ -234,6 +234,44 @@ Album {
 - A sequence that does not know its count, like a LINQ query or an iterator, is kept as well and only enumerated once
   to be written, as it might only be enumerable once.
 
+### Converting members
+
+To keep the meaningful part of a value that changes from run to run, convert it instead of masking it completely:
+
+```csharp
+await Expect.That(album).MatchesSnapshot()
+    .Masking.MemberOf((Album a) => a.Released, released => released.Year)
+    .Masking.MemberOf((Track t) => t.Duration, duration => Math.Round(duration.TotalMinutes));
+```
+
+```text title="Snapshot"
+Album {
+  Released = 1969,
+  Title = "Abbey Road",
+  Tracks = [
+    Track {
+      Duration = 4.0,
+      Title = "Come Together"
+    }
+  ]
+}
+```
+
+- The parameter of the expression is typed, `(Album a) => a.Released`, instead of writing `MemberOf<Album>(…)`, as C#
+  infers either all type arguments of a method or none, and the converter needs the type of the member.
+  `MemberOf<Album, DateTime, int>(a => a.Released, released => released.Year)` is the same. The member matches like in
+  `MemberOf<T>(…)`, so only in an `Album` or a derived type.
+- The converted value is written by the formatter like any other value: a `string` in quotes, a number in the invariant
+  culture (a `double` as `4.0`), and an object, also an anonymous one, e.g.
+  `released => new { released.Year, released.Month }`, member-wise and indented at the depth of the member. The member
+  and type rules don't apply to the values nested in it, but the maskings of the text do. A converted `null` is written
+  as `<null>`.
+- The value is read once. A `null` value is not converted, and neither is a value of another type, e.g. of a member
+  that a derived type hides with `new`. A member that throws is written with its exception as usual, while an exception
+  of the converter is thrown, as it is a mistake in the test.
+- The source generator of aweXpect registers the type that the converter returns, so that it is also written
+  member-wise in a trimmed or Native AOT build.
+
 A `string` is compared as raw text and has no members, so a member or type rule on a `string` subject throws an
 `InvalidOperationException`.
 
@@ -249,6 +287,7 @@ Customize.aweXpect.Global.Snapshots().Maskings.Set([
     SnapshotMasking.Dates(),
     SnapshotMasking.MachineName(),
     SnapshotMasking.Regex(new Regex(@"localhost:\d+"), "localhost:<port>"),
+    SnapshotMasking.MemberOf((Album a) => a.Released, released => released.Year),
 ]);
 ```
 

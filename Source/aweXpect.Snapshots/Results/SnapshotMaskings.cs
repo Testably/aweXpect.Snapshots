@@ -1,5 +1,6 @@
 using System;
 using System.Linq.Expressions;
+using aweXpect.Core.Metadata;
 using aweXpect.Formatting;
 using aweXpect.Snapshots;
 
@@ -61,6 +62,11 @@ public sealed class SnapshotMaskings<TType, TThat>
 	/// <inheritdoc cref="SnapshotMasking.MemberOf{T}(Expression{Func{T, object}}, string)" />
 	public SnapshotResult<TType, TThat> MemberOf<T>(Expression<Func<T, object?>> member, string replacement)
 		=> AddStructural(SnapshotMasking.MemberOf(member, replacement));
+
+	/// <inheritdoc cref="SnapshotMasking.MemberOf{T, TMember, TResult}(Expression{Func{T, TMember}}, Func{TMember, TResult})" />
+	public SnapshotResult<TType, TThat> MemberOf<T, TMember, [RequiresMemberMetadata] TResult>(
+		Expression<Func<T, TMember>> member, Func<TMember, TResult> convert)
+		=> AddStructural(SnapshotMasking.MemberOf(member, convert));
 
 	/// <summary>
 	///     Replaces the paths of the environment with placeholders when <paramref name="mask" /> is

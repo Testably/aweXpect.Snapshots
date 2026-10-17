@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using aweXpect.Core;
+using aweXpect.Core.Metadata;
 using aweXpect.Customization;
 using aweXpect.Formatting;
 using static aweXpect.Formatting.Format;
@@ -18,7 +19,8 @@ namespace aweXpect.Snapshots;
 ///     substitutions of <see cref="System.Text.RegularExpressions.Regex.Replace(string, string)" />, e.g. <c>$1</c>.
 ///     <see cref="Guids" /> and <see cref="Dates" /> number their placeholders, so that the same value keeps the same
 ///     placeholder within one subject.<br />
-///     <see cref="Member(string)" />, <see cref="MemberOf{T}(Expression{Func{T, object}})" /> and
+///     <see cref="Member(string)" />, <see cref="MemberOf{T}(Expression{Func{T, object}})" />,
+///     <see cref="MemberOf{T, TMember, TResult}(Expression{Func{T, TMember}}, Func{TMember, TResult})" /> and
 ///     <see cref="Type{T}()" /> replace values nested in an object snapshot while it is written, so they apply before
 ///     the maskings of the text, and only to snapshots of objects; the first one that matches a value wins. Numbered placeholders of the same name share their numbers across all maskings.<br />
 ///     Set maskings for all snapshots with <c>Customize.aweXpect.Snapshots().Maskings</c>; they are applied after the
@@ -60,6 +62,7 @@ public sealed class SnapshotMasking
 		"(?![0-9])",
 		RegexOptions.None, RegexTimeout);
 
+	private readonly Func<object, ValueFormatting?>? _convert;
 	private readonly bool _ignoresCase;
 	private readonly string? _placeholder;
 	private readonly string? _replacement;
@@ -84,11 +87,13 @@ public sealed class SnapshotMasking
 		_ignoresCase = ignoresCase;
 	}
 
-	private SnapshotMasking(SnapshotValueRule rule, string? replacement)
+	private SnapshotMasking(SnapshotValueRule rule, string? replacement,
+		Func<object, ValueFormatting?>? convert = null)
 	{
 		_value = "";
 		_rule = rule;
 		_replacement = replacement;
+		_convert = convert;
 	}
 
 	private SnapshotMasking(string pattern, RegexOptions options, string placeholder)
@@ -321,6 +326,38 @@ public sealed class SnapshotMasking
 		=> new(SnapshotValueRule.ForMemberOf(member), ThrowIfNull(replacement));
 
 	/// <summary>
+	///     Replaces the value of the <paramref name="member" /> of each <typeparamref name="T" /> in an object snapshot
+	///     with the value that <paramref name="convert" /> returns for it, e.g. only the year of a date, so that the
+	///     meaningful part of a value that changes from run to run stays visible.
+	/// </summary>
+	/// <remarks>
+	///     The <paramref name="member" /> matches like in <see cref="MemberOf{T}(Expression{Func{T, object}})" />. As C#
+	///     infers either all type arguments or none, type the parameter of the <paramref name="member" /> instead of
+	///     passing <typeparamref name="T" />:
+	///     <c>MemberOf((Album a) =&gt; a.Released, released =&gt; released.Year)</c>.<br />
+	///     The converted value is written by the formatter like any other value with the options of the snapshot, e.g. a
+	///     <see cref="string" /> in quotes and an object member-wise, but the member and type rules do not apply to the
+	///     values nested in it; a converted <see langword="null" /> is written as <c>&lt;null&gt;</c>. The value is read
+	///     once, and a value that cannot be read is written with its exception as usual. A <see langword="null" /> value,
+	///     or one that is no <typeparamref name="TMember" />, e.g. of a member that a derived type hides, is not
+	///     converted. An exception of <paramref name="convert" /> is thrown, as it is a mistake in the test that a
+	///     placeholder would hide. The source generator of aweXpect registers the members of
+	///     <typeparamref name="TResult" />, so that it is also written member-wise in a trimmed or Native AOT build.
+	/// </remarks>
+	public static SnapshotMasking MemberOf<T, TMember, [RequiresMemberMetadata] TResult>(
+		Expression<Func<T, TMember>> member, Func<TMember, TResult> convert)
+	{
+		SnapshotValueRule rule = SnapshotValueRule.ForMemberOf(member);
+		if (convert is null)
+		{
+			throw Tracing.WriteException(new ArgumentNullException(nameof(convert), "The 'convert' cannot be null."));
+		}
+
+		return new SnapshotMasking(rule, null,
+			value => value is TMember typedValue ? ValueFormatting.Replace(convert(typedValue)) : null);
+	}
+
+	/// <summary>
 	///     Replaces each value of the type <typeparamref name="T" /> in an object snapshot with a numbered placeholder
 	///     named after the type, e.g. <c>{Guid_1}</c>, where the same value keeps the same number.
 	/// </summary>
@@ -382,7 +419,7 @@ public sealed class SnapshotMasking
 	///     formatter writes the exception of a value that cannot be read. The key of a numbered placeholder is the text of
 	///     the value, in lower case for a <see cref="Guid" /> like in <see cref="Guids" />, so that both share a number.
 	/// </remarks>
-	internal SnapshotPlaceholder? GetReplacement(FormattedValue value, SnapshotNumbering numbering)
+	internal ValueFormatting? GetReplacement(FormattedValue value, SnapshotNumbering numbering)
 	{
 		if (_rule is null || !_rule.Matches(value))
 		{
@@ -404,13 +441,19 @@ public sealed class SnapshotMasking
 			return null;
 		}
 
-		return new SnapshotPlaceholder(_replacement ?? numbering.GetPlaceholder(_rule.GetPlaceholderName(value),
+		if (_convert is not null)
+		{
+			return _convert(actual);
+		}
+
+		return ValueFormatting.Replace(new SnapshotPlaceholder(_replacement ?? numbering.GetPlaceholder(
+			_rule.GetPlaceholderName(value),
 			actual switch
 			{
 				string text => text,
 				IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
 				_ => Formatter.Format(actual, FormattingOptions.Snapshot),
-			}));
+			})));
 	}
 
 	/// <summary>
