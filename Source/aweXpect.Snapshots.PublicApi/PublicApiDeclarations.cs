@@ -121,7 +121,7 @@ public static class PublicApiDeclarations
 	///     would change the generated public API.
 	/// </exception>
 	public static string GenerateFrom(Assembly assembly)
-		=> GenerateFrom(assembly, options => options);
+		=> GenerateFrom(assembly, static options => options);
 
 	/// <summary>
 	///     Generates the public API of the <paramref name="assembly" />, which must be loaded from a file, with the
@@ -159,7 +159,7 @@ public static class PublicApiDeclarations
 	///     generated public API.
 	/// </exception>
 	public static string GenerateFrom(FileInfo assemblyFile)
-		=> GenerateFrom(assemblyFile, options => options);
+		=> GenerateFrom(assemblyFile, static options => options);
 
 	/// <summary>
 	///     Generates the public API of the assembly in the <paramref name="assemblyFile" /> with the
