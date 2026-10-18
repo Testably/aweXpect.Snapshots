@@ -31,14 +31,14 @@ Correctness is a must. The other goals are strong defaults and win in this order
 - `aweXpect.Snapshots.Tests`, `.SourceRoots.Tests`, `.Orphans.Tests` and `.DiffEngine.Tests` set the acceptance to `None` in a module initializer, so `AWEXPECT_ACCEPT_SNAPSHOTS` has no effect there; rename pending files by hand. `.PublicApi.Tests` and `.Api.Tests` honour the variable (except on a build server).
 - Public API: after an intentional change, run the explicit test `AcceptApiChanges` (see [workflows](Docs/agents/workflows.md#public-api)), or rename the pending files, then review and commit the changed `ApiApprovalTests.*.awexpect-snapshot.txt`.
 - Snapshots per target framework (`@net48`, `@net8.0`, `@net10.0`) need a run on each; `net48` only runs on Windows.
-- Tests use temporary directories (`SnapshotDirectory`) or `InMemorySnapshotStore` instead of writing next to the project, as tests run in parallel.
+- Tests use temporary directories (`SnapshotDirectory`) or `InMemorySnapshotStore` instead of writing next to the project, as tests run in parallel, also those of one class. Tests that change process-wide state, e.g. environment variables, are marked `[NotInParallel]`; `.SourceRoots.Tests`, `.Orphans.Tests` and `.DiffEngine.Tests` run one test at a time (`[assembly: NotInParallel]`).
 - New expectations or options need docs in `Docs/pages/` (published to docs.testably.org) and, for a new expectation, a row in the README overview.
 
 ## Code conventions
 
 - `.editorconfig`: tabs, CRLF in the working tree; git stores LF (`* text=auto`). `*.bin` and `*.png` snapshots are binary.
 - Most files have no UTF-8 BOM, a few do; keep each file as it is. PowerShell rewrites (`Set-Content`, `Out-File`) and `sed -i` can change the BOM or line endings, which matters in raw string literals. Prefer an editor, and check `git diff` for a stray U+FEFF.
-- Tests: xUnit v2 (NUnit in `Api.Tests`), nested classes like `ThatSnapshot.MatchesSnapshot.<Feature>Tests` in a file of the same name, methods named `<Condition>_Should<Outcome>`, reasons in `.Because(...)` instead of comments, and exception messages always pinned with `.WithMessage(...)`.
+- Tests: TUnit on the Microsoft.Testing.Platform (`[Test]`, `[Arguments(...)]`, `[MethodDataSource(...)]`), nested classes like `ThatSnapshot.MatchesSnapshot.<Feature>Tests` in a file of the same name, methods named `<Condition>_Should<Outcome>`, reasons in `.Because(...)` instead of comments, and exception messages always pinned with `.WithMessage(...)`.
 
 ## Git workflow
 

@@ -13,13 +13,16 @@ dotnet build aweXpect.Snapshots.slnx
 
 ## Test
 
-Build first, then run single projects with `--no-build`:
+The tests use [TUnit](https://tunit.dev/) on the Microsoft.Testing.Platform, which `global.json` selects for `dotnet test`. Build first, then run the solution or single projects with `--no-build`:
 
 ```powershell
-dotnet test Tests/aweXpect.Snapshots.Tests/aweXpect.Snapshots.Tests.csproj --no-build -f net10.0 --filter "FullyQualifiedName~DiskStoreTests"
-dotnet test Tests/aweXpect.Snapshots.Tests/aweXpect.Snapshots.Tests.csproj --no-build -f net48
-dotnet test Tests/aweXpect.Snapshots.Api.Tests/aweXpect.Snapshots.Api.Tests.csproj --no-build
+dotnet test --solution aweXpect.Snapshots.slnx --no-build
+dotnet test --project Tests/aweXpect.Snapshots.Tests --no-build -f net10.0 --treenode-filter "/*/*/*DiskStoreTests/*"
+dotnet test --project Tests/aweXpect.Snapshots.Tests --no-build -f net48
+dotnet run --project Tests/aweXpect.Snapshots.Tests --no-build -f net10.0 -- --treenode-filter "/*/*/*/WhenSnapshotIsMissing*"
 ```
+
+`--treenode-filter` selects `/<assembly>/<namespace>/<class>/<test>`, with `*` as a wildcard. TUnit runs the tests in parallel, also those of one class.
 
 | Project                                    | Covers                                                                                                   |
 |--------------------------------------------|----------------------------------------------------------------------------------------------------------|
@@ -28,10 +31,10 @@ dotnet test Tests/aweXpect.Snapshots.Api.Tests/aweXpect.Snapshots.Api.Tests.cspr
 | `aweXpect.Snapshots.Orphans.Tests`         | `OrphanedSnapshots` with the disk store; separate, as it lists every snapshot of the project directory  |
 | `aweXpect.Snapshots.PublicApi.Tests`       | `MatchesPublicApiSnapshot` and `PublicApiDeclarations`, against `PublicApi.Fixture` and `PublicApi.PackageFixture` |
 | `aweXpect.Snapshots.DiffEngine.Tests`      | `DiffEngineReporter`; DiffEngine is disabled, so no diff tool starts                                     |
-| `aweXpect.Snapshots.Api.Tests`             | the public API of the three packages for every target framework (NUnit, `net8.0` only)                    |
+| `aweXpect.Snapshots.Api.Tests`             | the public API of the three packages for every target framework (`net8.0` only)                           |
 
 - The unit test projects target `net8.0;net10.0;net48`. `net48` only runs on Windows.
-- `.\build.ps1 UnitTests` runs the five unit test projects for every target framework (on Windows also `net48`, through the xUnit console runner). `.\build.ps1 CodeCoverage` adds the coverage report under `TestResults/reports`.
+- `.\build.ps1 UnitTests` runs the five unit test projects with `dotnet run` for every target framework (`net48` only on Windows) and writes `TestResults/<project>_<tfm>.trx` and `.cobertura.xml`. `.\build.ps1 CodeCoverage` adds the SonarQube coverage report under `TestResults/reports`.
 
 ## Snapshots
 
@@ -44,11 +47,11 @@ dotnet test Tests/aweXpect.Snapshots.Api.Tests/aweXpect.Snapshots.Api.Tests.cspr
 The API snapshots are `Tests/aweXpect.Snapshots.Api.Tests/ApiApprovalTests.<Assembly>.<Target>.awexpect-snapshot.txt` (dots escaped as `%2E`). The tests read the build output of every target framework in `Source/Directory.Build.props`, so build the solution first.
 
 ```powershell
-dotnet test Tests/aweXpect.Snapshots.Api.Tests/aweXpect.Snapshots.Api.Tests.csproj --no-build
-dotnet test Tests/aweXpect.Snapshots.Api.Tests/aweXpect.Snapshots.Api.Tests.csproj --no-build --filter "Name=AcceptApiChanges"
+dotnet test --project Tests/aweXpect.Snapshots.Api.Tests --no-build
+dotnet test --project Tests/aweXpect.Snapshots.Api.Tests --no-build --treenode-filter "/*/*/ApiApprovalTests/AcceptApiChanges"
 ```
 
-The second command runs the explicit test `AcceptApiChanges`, which overwrites the API snapshots with the current API. `.\build.ps1 ApiChecks` runs the API tests through the pipeline, as CI does.
+The second command runs the explicit test `AcceptApiChanges`, which a normal run skips and which overwrites the API snapshots with the current API. `.\build.ps1 ApiChecks` runs the API tests through the pipeline, as CI does.
 
 ## Native AOT
 
@@ -68,7 +71,7 @@ Builds `Benchmarks/aweXpect.Snapshots.Benchmarks` (`net8.0`) in `Release` and ru
 
 ## Mutation tests
 
-`.\build.ps1 MutationTestExecution` installs Stryker into `TestResults/dotnet-stryker` and mutates `aweXpect.Snapshots` on `net10.0` with `aweXpect.Snapshots.Tests`, `.SourceRoots.Tests` and `.Orphans.Tests`. Off `main` it only mutates the changes since `main`. Reports go to `Artifacts/Stryker`. It takes long; leave it to CI unless asked.
+`.\build.ps1 MutationTests` installs the Stryker version pinned in `Pipeline/Build.csproj` into `TestResults/dotnet-stryker` and mutates `aweXpect.Snapshots` on `net10.0` with `aweXpect.Snapshots.Tests`, `.SourceRoots.Tests` and `.Orphans.Tests`, through Stryker's runner for the Microsoft.Testing.Platform (`--test-runner mtp`). Off `main` it only mutates the changes since `main`. Reports go to `Artifacts/Stryker`. It takes long; leave it to CI unless asked.
 
 ## Documentation
 
@@ -84,14 +87,14 @@ The pipeline in `Pipeline/` uses [Fallout](https://www.nuget.org/packages/Fallou
 |-------------------------|------------------------------------------------------------------------------------------|
 | `Compile`               | cleans `Artifacts` and `TestResults`, restores and builds the solution with the GitVersion version |
 | `UnitTests`             | runs the unit test projects (`DotNetUnitTests`, and `DotNetFrameworkUnitTests` on Windows) |
-| `CodeCoverage`          | `UnitTests` plus an OpenCover report with ReportGenerator                                |
+| `CodeCoverage`          | `UnitTests` plus a SonarQube coverage report with ReportGenerator                        |
 | `ApiChecks`             | runs `aweXpect.Snapshots.Api.Tests`                                                      |
 | `AotSmokeTests`         | runs and publishes the AOT smoke tests                                                   |
 | `Pack`                  | `UpdateReadme` and `Compile`, then collects the packages into `Artifacts/Packages`       |
 | `Benchmarks`            | `BenchmarkDotNet` and `BenchmarkResult`                                                  |
-| `MutationTests`         | `MutationTestExecution` and `MutationComment` (the comment only on a pull request)       |
+| `MutationTests`         | runs Stryker on `aweXpect.Snapshots`, see [mutation tests](#mutation-tests)              |
 | `CodeAnalysis`          | SonarCloud analysis around `Compile` and `CodeCoverage`; needs `SonarToken`              |
-| `BenchmarkComment`, `MutationTestDashboard` | CI only: post results to the pull request and the Stryker dashboard  |
+| `BenchmarkComment`, `MutationTestsComment`, `MutationTestsDashboard` | CI only: post results to the pull request and the Stryker dashboard |
 
 ## CI workflows
 
