@@ -12,6 +12,7 @@
     <Project Path="Tests/aweXpect.Snapshots.DiffEngine.Tests/aweXpect.Snapshots.DiffEngine.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.Orphans.Tests/aweXpect.Snapshots.Orphans.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.PublicApi.Fixture/aweXpect.Snapshots.PublicApi.Fixture.csproj" />
+    <Project Path="Tests/aweXpect.Snapshots.PublicApi.PackageFixture/aweXpect.Snapshots.PublicApi.PackageFixture.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.PublicApi.Tests/aweXpect.Snapshots.PublicApi.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.SourceRoots.Tests/aweXpect.Snapshots.SourceRoots.Tests.csproj" />
     <Project Path="Tests/aweXpect.Snapshots.Tests/aweXpect.Snapshots.Tests.csproj" />
