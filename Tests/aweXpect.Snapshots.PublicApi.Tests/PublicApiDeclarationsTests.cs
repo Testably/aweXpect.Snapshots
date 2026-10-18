@@ -72,6 +72,15 @@ public sealed class PublicApiDeclarationsTests
 	                                        }
 	                                        """;
 
+	private const string RecordsSource = """
+	                                     namespace System.Runtime.CompilerServices { internal static class IsExternalInit { } }
+	                                     namespace Library
+	                                     {
+	                                         public record Artist(string Name) { public override string ToString() => Name; }
+	                                         public record struct Point(int X, int Y) { public override string ToString() => ""; }
+	                                     }
+	                                     """;
+
 	[Fact]
 	public async Task GenerateFrom_ShouldWriteTheAttributesOfTheLibrary()
 	{
@@ -107,6 +116,39 @@ public sealed class PublicApiDeclarationsTests
 
 		await That(result).Contains("[System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out object value")
 			.Because("compilers read a polyfilled attribute by its name, so it changes how consumers compile");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_ShouldWriteInternalFeatureSwitchAttributes()
+	{
+		FileInfo library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", """
+			namespace Library
+			{
+			    public static class Features
+			    {
+			        [System.Diagnostics.CodeAnalysis.FeatureGuard(typeof(Features))]
+			        [System.Diagnostics.CodeAnalysis.FeatureSwitchDefinition("Library.IsSupported")]
+			        public static bool IsSupported => true;
+			    }
+			}
+			namespace System.Diagnostics.CodeAnalysis
+			{
+			    internal sealed class FeatureGuardAttribute(System.Type featureType) : System.Attribute
+			    {
+			        public System.Type FeatureType { get; } = featureType;
+			    }
+			    internal sealed class FeatureSwitchDefinitionAttribute(string switchName) : System.Attribute
+			    {
+			        public string SwitchName { get; } = switchName;
+			    }
+			}
+			"""));
+
+		string result = PublicApiDeclarations.GenerateFrom(library);
+
+		await That(result).Contains("[System.Diagnostics.CodeAnalysis.FeatureGuard(typeof(Library.Features))]")
+			.And.Contains("[System.Diagnostics.CodeAnalysis.FeatureSwitchDefinition(\"Library.IsSupported\")]")
+			.Because("trim and AOT analyzers read polyfilled feature switch attributes by their name");
 	}
 
 	[Fact]
@@ -183,6 +225,93 @@ public sealed class PublicApiDeclarationsTests
 			o => o.Ignoring.Attribute<System.Runtime.CompilerServices.TypeForwardedToAttribute>());
 
 		await That(result).DoesNotContain("TypeForwardedTo");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_ShouldWriteTheAttributesThatAreStoredAsMetadataFlags()
+	{
+		FileInfo library = WritePseudoAttributesLibrary();
+
+		string result = PublicApiDeclarations.GenerateFrom(library, o => o.Ignoring.Type("Library.Note"));
+
+		await That(result).IsEqualTo("""
+		                             namespace Library
+		                             {
+		                                 public delegate void Handler();
+		                                 public enum Kind
+		                                 {
+		                                     A = 0,
+		                                 }
+		                                 public static class Native
+		                                 {
+		                                     [System.Runtime.InteropServices.DllImport("x")]
+		                                     public static extern void Beep();
+		                                     public static void Configure([System.Runtime.InteropServices.Optional] int retries, int depth = 3, int timeout = 5, [System.Runtime.CompilerServices.CallerMemberName] string caller = "", params int[] values) { }
+		                                     [System.Runtime.InteropServices.DllImport("x", EntryPoint = "send", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true, ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+		                                     public static extern int Send(string message);
+		                                 }
+		                                 [System.Serializable]
+		                                 public class Payload
+		                                 {
+		                                     public Payload() { }
+		                                 }
+		                                 public class Plain
+		                                 {
+		                                     public Plain() { }
+		                                 }
+		                             }
+
+		                             """).IgnoringNewlineStyle()
+			.Because("[Serializable] is written only where it is declared, e.g. not on enums or delegates, [Optional] " +
+			         "only without a default value, which C# also stores as optional, and [DllImport] only with the " +
+			         "arguments that differ from a plain [DllImport(\"x\")]");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_ShouldNotWriteSerializableForRecords()
+	{
+		FileInfo library = WritePseudoAttributesLibrary();
+
+		string result = PublicApiDeclarations.GenerateFrom(library, o => o.Within.Type("Library.Note"));
+
+		await That(result).StartsWith("""
+		                              namespace Library
+		                              {
+		                                  public record Note
+		                              """).IgnoringNewlineStyle()
+			.Because("the compiler does not mark a record as serializable unless it declares [Serializable]");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_WhenIgnoringSerializable_ShouldNotWriteIt()
+	{
+		FileInfo library = WritePseudoAttributesLibrary();
+
+		string result = PublicApiDeclarations.GenerateFrom(library, o => o.Ignoring.Attribute<SerializableAttribute>());
+
+		await That(result).DoesNotContain("Serializable").And.Contains("public class Payload");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_WhenIgnoringDllImport_ShouldNotWriteIt()
+	{
+		FileInfo library = WritePseudoAttributesLibrary();
+
+		string result = PublicApiDeclarations.GenerateFrom(library,
+			o => o.Ignoring.Attribute<System.Runtime.InteropServices.DllImportAttribute>());
+
+		await That(result).DoesNotContain("DllImport").And.Contains("public static extern void Beep();");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_WhenIgnoringOptional_ShouldNotWriteIt()
+	{
+		FileInfo library = WritePseudoAttributesLibrary();
+
+		string result = PublicApiDeclarations.GenerateFrom(library,
+			o => o.Ignoring.Attribute<System.Runtime.InteropServices.OptionalAttribute>());
+
+		await That(result).Contains("Configure(int retries, int depth = 3, int timeout = 5,");
 	}
 
 	[Fact]
@@ -376,6 +505,71 @@ public sealed class PublicApiDeclarationsTests
 		string result = PublicApiDeclarations.GenerateFrom(assembly, o => o.Ignoring.ForwardedTypes());
 
 		await That(result).DoesNotContain("TypeForwardedTo");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_ShouldWriteTheCompilerGeneratedMembersOfRecords()
+	{
+		FileInfo library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", RecordsSource));
+
+		string result = PublicApiDeclarations.GenerateFrom(library);
+
+		await That(result).Contains("protected Artist(Library.Artist original) { }")
+			.And.Contains("public void Deconstruct(out string Name) { }")
+			.And.Contains("public readonly void Deconstruct(out int X, out int Y) { }")
+			.And.Contains("public static bool operator ==(Library.Point left, Library.Point right) { }")
+			.Because("the test that ignores compiler-generated members would otherwise pass without ignoring anything");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_WhenIgnoringCompilerGeneratedMembers_ShouldOnlyWriteTheDeclaredMembersOfRecords()
+	{
+		FileInfo library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", RecordsSource));
+
+		string result = PublicApiDeclarations.GenerateFrom(library, o => o.Ignoring.CompilerGeneratedMembers());
+
+		await That(result).IsEqualTo("""
+		                             namespace Library
+		                             {
+		                                 public record Artist : System.IEquatable<Library.Artist>
+		                                 {
+		                                     public Artist(string Name) { }
+		                                     public string Name { get; init; }
+		                                     public override string ToString() { }
+		                                 }
+		                                 public struct Point : System.IEquatable<Library.Point>
+		                                 {
+		                                     public Point(int X, int Y) { }
+		                                     public int X { readonly get; set; }
+		                                     public int Y { readonly get; set; }
+		                                     public override string ToString() { }
+		                                 }
+		                             }
+
+		                             """).IgnoringNewlineStyle()
+			.Because("the compiler marks only the accessors of positional properties as compiler-generated, and the primary constructor and a hand-written override are declared");
+	}
+
+	[Fact]
+	public async Task GenerateFrom_WhenIgnoringCompilerGeneratedMembers_ShouldKeepAutoPropertiesAndEvents()
+	{
+		FileInfo library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", """
+			namespace Library
+			{
+			    public class Album
+			    {
+			        public string Title { get; set; } = "";
+			        public event System.EventHandler Changed { add { } remove { } }
+			        public event System.EventHandler Played;
+			    }
+			}
+			"""));
+
+		string result = PublicApiDeclarations.GenerateFrom(library, o => o.Ignoring.CompilerGeneratedMembers());
+
+		await That(result).IsEqualTo(PublicApiDeclarations.GenerateFrom(library))
+			.And.Contains("public string Title { get; set; }").And.Contains("public event System.EventHandler Played;")
+			.Because("the compiler marks only the accessors and backing fields of auto-properties and field-like events");
 	}
 
 	[Fact]
