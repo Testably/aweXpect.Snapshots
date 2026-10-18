@@ -23,6 +23,7 @@ partial class Build
 		Solution.Tests.aweXpect_Snapshots_Tests,
 		Solution.Tests.aweXpect_Snapshots_SourceRoots_Tests,
 		Solution.Tests.aweXpect_Snapshots_Orphans_Tests,
+		Solution.Tests.aweXpect_Snapshots_PublicApi_Tests,
 	];
 
 	Target DotNetFrameworkUnitTests => _ => _

@@ -72,6 +72,7 @@ partial class Build
 			foreach (Project project in new[]
 			         {
 				         Solution.aweXpect_Snapshots,
+				         Solution.aweXpect_Snapshots_PublicApi,
 			         })
 			{
 				foreach (string package in
