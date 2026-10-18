@@ -9,7 +9,7 @@ using static aweXpect.Snapshots.PublicApi.Tests.TestHelpers.Compiler;
 
 namespace aweXpect.Snapshots.PublicApi.Tests;
 
-public sealed class PublicApiWriterTests
+public sealed class PublicApiDeclarationsTests
 {
 	private const string LibrarySource = """
 	                                     namespace Library;
@@ -23,7 +23,7 @@ public sealed class PublicApiWriterTests
 	private const string DependencySource = "namespace Dependency; public class Gate { }";
 
 	[Fact]
-	public async Task Write_ShouldWriteNumbersIndependentlyOfTheCurrentCulture()
+	public async Task GenerateFrom_ShouldWriteNumbersIndependentlyOfTheCurrentCulture()
 	{
 		Assembly assembly = typeof(Album).Assembly;
 		CultureInfo culture = CultureInfo.CurrentCulture;
@@ -32,9 +32,9 @@ public sealed class PublicApiWriterTests
 		try
 		{
 			CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-			expected = PublicApiWriter.Write(assembly);
+			expected = PublicApiDeclarations.GenerateFrom(assembly);
 			CultureInfo.CurrentCulture = new CultureInfo("sv-SE");
-			result = PublicApiWriter.Write(assembly);
+			result = PublicApiDeclarations.GenerateFrom(assembly);
 		}
 		finally
 		{
@@ -46,32 +46,32 @@ public sealed class PublicApiWriterTests
 	}
 
 	[Fact]
-	public async Task Write_WhenAReferenceIsMissing_ShouldThrowInvalidOperationException()
+	public async Task GenerateFrom_WhenAReferenceIsMissing_ShouldThrowInvalidOperationException()
 	{
 		byte[] dependency = Compile("Dependency", "2.0.0.0", DependencySource);
-		string library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource,
+		FileInfo library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource,
 			[MetadataReference.CreateFromImage(dependency),]));
 
 		void Act()
-			=> PublicApiWriter.Write(library);
+			=> PublicApiDeclarations.GenerateFrom(library);
 
 		await That(Act).Throws<InvalidOperationException>()
 			.WithMessage(
-				"The public API of 'Library.dll' cannot be written, because its references 'Dependency, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null' could not be resolved.*")
+				"The public API of 'Library.dll' cannot be generated, because its references 'Dependency, Version=2.0.0.0, Culture=neutral, PublicKeyToken=null' could not be resolved.*")
 			.AsWildcard();
 	}
 
 	[Fact]
-	public async Task Write_WhenAReferenceIsOnlyFoundInALowerVersion_ShouldThrowInvalidOperationException()
+	public async Task GenerateFrom_WhenAReferenceIsOnlyFoundInALowerVersion_ShouldThrowInvalidOperationException()
 	{
 		byte[] dependency = Compile("Dependency", "2.0.0.0", DependencySource);
-		string library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource,
+		FileInfo library = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource,
 			[MetadataReference.CreateFromImage(dependency),]));
 		WriteFile("Dependency.dll", Compile("Dependency", "1.0.0.0", DependencySource),
-			Path.GetDirectoryName(library));
+			library.DirectoryName);
 
 		void Act()
-			=> PublicApiWriter.Write(library);
+			=> PublicApiDeclarations.GenerateFrom(library);
 
 		await That(Act).Throws<InvalidOperationException>()
 			.WithMessage(
@@ -81,13 +81,13 @@ public sealed class PublicApiWriterTests
 	}
 
 	[Fact]
-	public async Task Write_WhenAssemblyIsNotLoadedFromAFile_ShouldThrowArgumentException()
+	public async Task GenerateFrom_WhenAssemblyIsNotLoadedFromAFile_ShouldThrowArgumentException()
 	{
 		AssemblyBuilder assembly =
 			AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("InMemory"), AssemblyBuilderAccess.Run);
 
 		void Act()
-			=> PublicApiWriter.Write(assembly);
+			=> PublicApiDeclarations.GenerateFrom(assembly);
 
 		await That(Act).Throws<ArgumentException>()
 			.WithMessage("The assembly 'InMemory' was not loaded from a file, so its public API cannot be read.*")
@@ -95,40 +95,40 @@ public sealed class PublicApiWriterTests
 	}
 
 	[Fact]
-	public async Task Write_WhenFileIsAReferenceAssembly_ShouldWriteThePublicApiOfTheImplementation()
+	public async Task GenerateFrom_WhenFileIsAReferenceAssembly_ShouldGenerateThePublicApiOfTheImplementation()
 	{
 		byte[] dependency = Compile("Dependency", "1.0.0.0", DependencySource);
 		MetadataReference[] references = [MetadataReference.CreateFromImage(dependency),];
-		string implementation = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource, references));
-		WriteFile("Dependency.dll", dependency, Path.GetDirectoryName(implementation));
-		string reference = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource, references, true));
-		WriteFile("Dependency.dll", dependency, Path.GetDirectoryName(reference));
+		FileInfo implementation = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource, references));
+		WriteFile("Dependency.dll", dependency, implementation.DirectoryName);
+		FileInfo reference = WriteFile("Library.dll", Compile("Library", "1.0.0.0", LibrarySource, references, true));
+		WriteFile("Dependency.dll", dependency, reference.DirectoryName);
 
-		string result = PublicApiWriter.Write(reference);
+		string result = PublicApiDeclarations.GenerateFrom(reference);
 
-		await That(result).IsEqualTo(PublicApiWriter.Write(implementation))
+		await That(result).IsEqualTo(PublicApiDeclarations.GenerateFrom(implementation))
 			.Because("a reference assembly, which cannot be loaded, has the same public API as its implementation");
 	}
 
 	[Fact]
-	public async Task Write_WhenGivenAFile_ShouldNotLoadTheAssembly()
+	public async Task GenerateFrom_WhenGivenAFile_ShouldNotLoadTheAssembly()
 	{
 		string name = $"Unloaded{Guid.NewGuid():N}";
-		string file = WriteFile($"{name}.dll", Compile(name, "1.0.0.0", "namespace Unloaded; public class Api { }"));
+		FileInfo file = WriteFile($"{name}.dll", Compile(name, "1.0.0.0", "namespace Unloaded; public class Api { }"));
 
-		PublicApiWriter.Write(file);
+		PublicApiDeclarations.GenerateFrom(file);
 
 		await That(AppDomain.CurrentDomain.GetAssemblies().Select(assembly => assembly.GetName().Name))
 			.DoesNotContain(name);
 	}
 
 	[Fact]
-	public async Task Write_WhenGivenTheFileOfAnAssembly_ShouldWriteTheSamePublicApiAsForTheAssembly()
+	public async Task GenerateFrom_WhenGivenTheFileOfAnAssembly_ShouldGenerateTheSamePublicApiAsForTheAssembly()
 	{
 		Assembly assembly = typeof(Album).Assembly;
 
-		string result = PublicApiWriter.Write(assembly.Location);
+		string result = PublicApiDeclarations.GenerateFrom(new FileInfo(assembly.Location));
 
-		await That(result).IsEqualTo(PublicApiWriter.Write(assembly));
+		await That(result).IsEqualTo(PublicApiDeclarations.GenerateFrom(assembly));
 	}
 }

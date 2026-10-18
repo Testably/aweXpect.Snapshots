@@ -12,14 +12,14 @@ public sealed partial class ThatPublicApi
 			[Fact]
 			public async Task ShouldDescribeThePublicApiOfTheAssemblyInTheFile()
 			{
-				FileInfo subject = new(WriteFile("Library.dll", Compile("Library", "1.0.0.0", """
+				FileInfo subject = WriteFile("Library.dll", Compile("Library", "1.0.0.0", """
 					namespace Library;
 					public class Api
 					{
 					    public string Name { get; set; } = "";
 					    public void Play(int volume = 5) { }
 					}
-					""")));
+					"""));
 
 				await That(subject).MatchesPublicApiSnapshot();
 			}

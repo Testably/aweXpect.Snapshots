@@ -10,8 +10,8 @@ using aweXpect.Snapshots.PublicApi;
 await Expect.That(typeof(Album).Assembly).MatchesPublicApiSnapshot().UniqueFor.TargetFramework();
 ```
 
-The expectation and the `PublicApiWriter`, which writes the public API without an expectation, are in the namespace
-`aweXpect.Snapshots.PublicApi`.
+The expectation and `PublicApiDeclarations.GenerateFrom(…)`, which generates the public API without an expectation, are
+in the namespace `aweXpect.Snapshots.PublicApi`.
 
 The public API is written as C# declarations, e.g.
 

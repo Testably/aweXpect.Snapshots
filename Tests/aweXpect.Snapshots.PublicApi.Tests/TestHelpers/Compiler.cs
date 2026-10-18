@@ -32,14 +32,14 @@ public static class Compiler
 
 	/// <summary>
 	///     Writes the <paramref name="bytes" /> of an assembly as <paramref name="fileName" /> into a new directory, or
-	///     into the <paramref name="directory" />, and returns its path.
+	///     into the <paramref name="directory" />.
 	/// </summary>
-	public static string WriteFile(string fileName, byte[] bytes, string? directory = null)
+	public static FileInfo WriteFile(string fileName, byte[] bytes, string? directory = null)
 	{
 		directory ??= Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "aweXpect.Snapshots.PublicApi.Tests",
 			Guid.NewGuid().ToString("N"))).FullName;
 		string path = Path.Combine(directory, fileName);
 		File.WriteAllBytes(path, bytes);
-		return path;
+		return new FileInfo(path);
 	}
 }

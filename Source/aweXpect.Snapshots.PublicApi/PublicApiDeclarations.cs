@@ -16,13 +16,13 @@ using SymbolDisplayFormat = Microsoft.CodeAnalysis.SymbolDisplayFormat;
 namespace aweXpect.Snapshots.PublicApi;
 
 /// <summary>
-///     Writes the public API of a compiled assembly as C# declarations.
+///     Generates the public API of a compiled assembly as C# declarations.
 /// </summary>
 /// <remarks>
 ///     The assembly is read with Roslyn from its metadata, so that newer language features, e.g. extension members, are
 ///     described like in the source.
 /// </remarks>
-public static class PublicApiWriter
+public static class PublicApiDeclarations
 {
 	private const string Indentation = "    ";
 
@@ -111,16 +111,16 @@ public static class PublicApiWriter
 		new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
-	///     Writes the public API of the <paramref name="assembly" />, which must be loaded from a file.
+	///     Generates the public API of the <paramref name="assembly" />, which must be loaded from a file.
 	/// </summary>
 	/// <remarks>
-	///     The file of the assembly is read like by <see cref="Write(string)" />.
+	///     The file of the assembly is read like by <see cref="GenerateFrom(FileInfo)" />.
 	/// </remarks>
 	/// <exception cref="InvalidOperationException">
 	///     An assembly that the <paramref name="assembly" /> references cannot be resolved, or only in a lower version, which
-	///     would change the written public API.
+	///     would change the generated public API.
 	/// </exception>
-	public static string Write(Assembly assembly)
+	public static string GenerateFrom(Assembly assembly)
 	{
 		if (assembly.IsDynamic || string.IsNullOrEmpty(assembly.Location))
 		{
@@ -129,11 +129,11 @@ public static class PublicApiWriter
 				nameof(assembly));
 		}
 
-		return Write(assembly.Location);
+		return GenerateFrom(new FileInfo(assembly.Location));
 	}
 
 	/// <summary>
-	///     Writes the public API of the assembly in the <paramref name="assemblyFile" /> without loading it, e.g. of a
+	///     Generates the public API of the assembly in the <paramref name="assemblyFile" /> without loading it, e.g. of a
 	///     build for a target framework that the application cannot run on or of a reference assembly.
 	/// </summary>
 	/// <remarks>
@@ -142,13 +142,10 @@ public static class PublicApiWriter
 	/// </remarks>
 	/// <exception cref="InvalidOperationException">
 	///     An assembly that the assembly references cannot be resolved, or only in a lower version, which would change the
-	///     written public API.
+	///     generated public API.
 	/// </exception>
-	public static string Write(string assemblyFile)
-	{
-		string fullPath = Path.GetFullPath(assemblyFile);
-		return WriteFile(fullPath, GetReferencePack(fullPath));
-	}
+	public static string GenerateFrom(FileInfo assemblyFile)
+		=> WriteFile(assemblyFile.FullName, GetReferencePack(assemblyFile.FullName));
 
 	private static string WriteFile(string assemblyFile, string? referencePack)
 	{
@@ -216,7 +213,7 @@ public static class PublicApiWriter
 		if (unresolved.Length > 0)
 		{
 			throw new InvalidOperationException(
-				$"The public API of '{Path.GetFileName(assemblyFile)}' cannot be written, because its references " +
+				$"The public API of '{Path.GetFileName(assemblyFile)}' cannot be generated, because its references " +
 				$"{string.Join(", ", unresolved.Select(reference => $"'{reference}'"))} could not be resolved. " +
 				"Copy them next to the assembly or into the output of the tests, or install the .NET SDK of its target framework.");
 		}

@@ -2,10 +2,10 @@
 [assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v10.0", FrameworkDisplayName = ".NET 10.0")]
 namespace aweXpect.Snapshots.PublicApi
 {
-    public static class PublicApiWriter
+    public static class PublicApiDeclarations
     {
-        public static string Write(System.Reflection.Assembly assembly) { }
-        public static string Write(string assemblyFile) { }
+        public static string GenerateFrom(System.IO.FileInfo assemblyFile) { }
+        public static string GenerateFrom(System.Reflection.Assembly assembly) { }
     }
     public static class ThatPublicApi
     {
