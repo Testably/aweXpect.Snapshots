@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -54,6 +55,8 @@ public static class ThatPublicApi
 		=> AddPublicApiSnapshot(subject, PublicApiDeclarations.GenerateFrom, callerFilePath,
 			callerMemberName);
 
+	[SuppressMessage("Minor Code Smell", "S3236:Caller information arguments should not be provided explicitly",
+		Justification = "The snapshot is named after the test that calls the public API expectation.")]
 	private static SnapshotResult<string?, IThat<string?>> AddPublicApiSnapshot<TSubject>(
 		IThat<TSubject?> subject,
 		Func<TSubject, string> write,

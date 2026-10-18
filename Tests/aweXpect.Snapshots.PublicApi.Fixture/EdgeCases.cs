@@ -46,12 +46,10 @@ public readonly struct Money(decimal amount)
 
 public class Wallet
 {
-	private decimal _total;
-
-	public decimal Total => _total;
+	public decimal Total { get; private set; }
 
 #if NET
-	public void operator +=(Money value) => _total += value.Amount;
+	public void operator +=(Money value) => Total += value.Amount;
 #endif
 
 	public event EventHandler? Changed
