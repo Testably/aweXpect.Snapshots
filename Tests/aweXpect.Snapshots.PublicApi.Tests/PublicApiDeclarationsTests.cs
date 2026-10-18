@@ -12,7 +12,7 @@ using static aweXpect.Snapshots.PublicApi.Tests.TestHelpers.Compiler;
 
 namespace aweXpect.Snapshots.PublicApi.Tests;
 
-public sealed class PublicApiDeclarationsTests
+public sealed partial class PublicApiDeclarationsTests
 {
 	private const string LibrarySource = """
 	                                     namespace Library;
@@ -297,8 +297,15 @@ public sealed class PublicApiDeclarationsTests
 	///     lines with the same deeper indentation, onto that line.
 	/// </summary>
 	private static string JoinParameterLines(string publicApi)
-		=> Regex.Replace(publicApi, @"([(\[])\n( +)((?:.*,\n\2)*)",
+		=> ParameterLinesRegex().Replace(publicApi,
 			match => match.Groups[1].Value + match.Groups[3].Value.Replace(",\n" + match.Groups[2].Value, ", "));
+
+#if NET8_0_OR_GREATER
+	[GeneratedRegex(@"([(\[])\n( +)((?:.*,\n\2)*)")]
+	private static partial Regex ParameterLinesRegex();
+#else
+	private static Regex ParameterLinesRegex() => new(@"([(\[])\n( +)((?:.*,\n\2)*)");
+#endif
 
 	[Fact]
 	public async Task GenerateFrom_ShouldWriteTheAttributesOfTheLibrary()
