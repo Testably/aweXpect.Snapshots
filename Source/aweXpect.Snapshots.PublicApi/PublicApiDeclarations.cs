@@ -199,26 +199,34 @@ public static class PublicApiDeclarations
 				         : type.ContainingNamespace.ToDisplayString())
 			         .OrderBy(group => group.Key, StringComparer.Ordinal))
 		{
-			bool isGlobalNamespace = types.Key.Length == 0;
-			if (!isGlobalNamespace)
-			{
-				sb.Append("namespace ").Append(types.Key).Append('\n');
-				sb.Append("{\n");
-			}
-
-			foreach (INamedTypeSymbol type in types.OrderBy(type => type.Name, StringComparer.Ordinal)
-				         .ThenBy(type => type.Arity))
-			{
-				WriteType(sb, type, isGlobalNamespace ? "" : Indentation);
-			}
-
-			if (!isGlobalNamespace)
-			{
-				sb.Append("}\n");
-			}
+			WriteNamespace(sb, types);
 		}
 
 		return sb.ToString();
+	}
+
+	/// <remarks>
+	///     The types in the global namespace, whose key is empty, are written without a namespace.
+	/// </remarks>
+	private static void WriteNamespace(StringBuilder sb, IGrouping<string, INamedTypeSymbol> types)
+	{
+		bool isGlobalNamespace = types.Key.Length == 0;
+		if (!isGlobalNamespace)
+		{
+			sb.Append("namespace ").Append(types.Key).Append('\n');
+			sb.Append("{\n");
+		}
+
+		foreach (INamedTypeSymbol type in types.OrderBy(type => type.Name, StringComparer.Ordinal)
+			         .ThenBy(type => type.Arity))
+		{
+			WriteType(sb, type, isGlobalNamespace ? "" : Indentation);
+		}
+
+		if (!isGlobalNamespace)
+		{
+			sb.Append("}\n");
+		}
 	}
 
 	/// <remarks>
