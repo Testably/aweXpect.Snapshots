@@ -5,9 +5,8 @@ using System.Runtime.CompilerServices;
 using aweXpect.Core;
 using aweXpect.Core.Extending;
 using aweXpect.Results;
-using aweXpect.Snapshots;
 
-namespace aweXpect;
+namespace aweXpect.Snapshots.PublicApi;
 
 /// <summary>
 ///     Public API snapshot expectations.

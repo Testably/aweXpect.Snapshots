@@ -5,6 +5,7 @@
 	-->
 	<PropertyGroup>
 		<IsTestProject>false</IsTestProject>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>

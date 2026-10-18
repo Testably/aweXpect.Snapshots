@@ -42,6 +42,11 @@ public abstract class Album : IComparable<Album>
 	public override bool Equals(object? obj) => false;
 	public override int GetHashCode() => 0;
 
+	protected class Edition
+	{
+		public int Year { get; init; }
+	}
+
 	public sealed class Track
 	{
 		public int Number { get; init; }
@@ -55,6 +60,7 @@ public enum Genres : byte
 	Rock = 1,
 	Jazz = 2,
 	All = Rock | Jazz,
+	Pop = 4,
 }
 
 public enum Mood : sbyte
@@ -70,6 +76,7 @@ public sealed class MarkerAttribute(string name) : Attribute
 	public string Name { get; } = name;
 	public int[]? Numbers { get; set; }
 	public AttributeTargets Targets { get; set; }
+	public double Threshold { get; set; }
 	public Type? Type { get; set; }
 }
 

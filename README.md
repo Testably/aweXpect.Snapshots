@@ -35,7 +35,8 @@ await Expect.That(json).MatchesSnapshot().WithExtension("json");
 // keep a snapshot per target framework and operating system (AlbumTests.Describes@net8.0@windows.awexpect-snapshot.txt)
 await Expect.That(exception.Message).MatchesSnapshot().UniqueFor.TargetFramework().UniqueFor.OperatingSystem();
 
-// verify the public API of an assembly, written as C# declarations (package aweXpect.Snapshots.PublicApi)
+// verify the public API of an assembly, written as C# declarations
+// (package and namespace aweXpect.Snapshots.PublicApi)
 await Expect.That(typeof(Album).Assembly).MatchesPublicApiSnapshot().UniqueFor.TargetFramework();
 ```
 

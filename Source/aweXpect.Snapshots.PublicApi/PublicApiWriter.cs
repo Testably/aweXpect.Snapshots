@@ -13,7 +13,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using SymbolDisplayFormat = Microsoft.CodeAnalysis.SymbolDisplayFormat;
 
-namespace aweXpect.Snapshots;
+namespace aweXpect.Snapshots.PublicApi;
 
 /// <summary>
 ///     Writes the public API of a compiled assembly as C# declarations.
@@ -35,8 +35,7 @@ public static class PublicApiWriter
 		               SymbolDisplayMemberOptions.IncludeType |
 		               SymbolDisplayMemberOptions.IncludeParameters |
 		               SymbolDisplayMemberOptions.IncludeRef |
-		               SymbolDisplayMemberOptions.IncludeConstantValue |
-		               SymbolDisplayMemberOptions.IncludeExplicitInterface,
+		               SymbolDisplayMemberOptions.IncludeConstantValue,
 		parameterOptions: SymbolDisplayParameterOptions.IncludeType |
 		                  SymbolDisplayParameterOptions.IncludeName |
 		                  SymbolDisplayParameterOptions.IncludeDefaultValue |
@@ -94,6 +93,14 @@ public static class PublicApiWriter
 		"System.Reflection.AssemblyInformationalVersionAttribute",
 		"System.Reflection.AssemblyProductAttribute",
 		"System.Reflection.AssemblyTitleAttribute",
+		"System.Reflection.AssemblyTrademarkAttribute",
+		"System.CodeDom.Compiler.GeneratedCodeAttribute",
+		"System.Diagnostics.DebuggerNonUserCodeAttribute",
+		"System.Runtime.CompilerServices.FixedBufferAttribute",
+		"System.Runtime.CompilerServices.DynamicAttribute",
+		"System.Runtime.CompilerServices.TupleElementNamesAttribute",
+		"System.Runtime.CompilerServices.NativeIntegerAttribute",
+		"System.Runtime.CompilerServices.IsReadOnlyAttribute",
 	];
 
 	/// <summary>
@@ -160,18 +167,28 @@ public static class PublicApiWriter
 		foreach (IGrouping<string, INamedTypeSymbol> types in GetNamespaces(assembly.GlobalNamespace)
 			         .SelectMany(ns => ns.GetTypeMembers())
 			         .Where(IsVisible)
-			         .GroupBy(type => type.ContainingNamespace.ToDisplayString())
+			         .GroupBy(type => type.ContainingNamespace.IsGlobalNamespace
+				         ? ""
+				         : type.ContainingNamespace.ToDisplayString())
 			         .OrderBy(group => group.Key, StringComparer.Ordinal))
 		{
-			sb.Append("namespace ").Append(types.Key).Append('\n');
-			sb.Append("{\n");
+			bool isGlobalNamespace = types.Key.Length == 0;
+			if (!isGlobalNamespace)
+			{
+				sb.Append("namespace ").Append(types.Key).Append('\n');
+				sb.Append("{\n");
+			}
+
 			foreach (INamedTypeSymbol type in types.OrderBy(type => type.Name, StringComparer.Ordinal)
 				         .ThenBy(type => type.Arity))
 			{
-				WriteType(sb, type, Indentation);
+				WriteType(sb, type, isGlobalNamespace ? "" : Indentation);
 			}
 
-			sb.Append("}\n");
+			if (!isGlobalNamespace)
+			{
+				sb.Append("}\n");
+			}
 		}
 
 		return sb.ToString();
@@ -325,6 +342,13 @@ public static class PublicApiWriter
 		   symbol.DeclaredAccessibility is Accessibility.Public or Accessibility.Protected
 			   or Accessibility.ProtectedOrInternal;
 
+	/// <summary>
+	///     A type, e.g. an implemented interface, that consumers can see, which also requires its containing types to be
+	///     visible.
+	/// </summary>
+	private static bool IsVisibleType(INamedTypeSymbol type)
+		=> IsVisible(type) && (type.ContainingType is null || IsVisibleType(type.ContainingType));
+
 	private static void WriteType(StringBuilder sb, INamedTypeSymbol type, string indent)
 	{
 		WriteAttributes(sb, type, indent);
@@ -432,20 +456,43 @@ public static class PublicApiWriter
 		                        Constraints(method.TypeParameters) + (method.IsAbstract ? ";" : " { }"),
 		IPropertySymbol property => Property(property),
 		IEventSymbol => member.ToDisplayString(EventFormat) + ";",
+		IFieldSymbol { IsFixedSizeBuffer: true, } field => AccessibilityKeyword(field) + " fixed " +
+		                                                   ((IPointerTypeSymbol)field.Type).PointedAtType
+		                                                   .ToDisplayString(MemberFormat) + " " +
+		                                                   field.ToDisplayString(TypeNameFormat) +
+		                                                   $"[{field.FixedSize}];",
+		IFieldSymbol { HasConstantValue: true, } field => ConstantValue(field.Type, field.ConstantValue,
+			field.ToDisplayString(MemberFormat)) + ";",
 		IFieldSymbol => member.ToDisplayString(MemberFormat) + ";",
 		_ => member.ToDisplayString(MemberFormat),
 	};
 
 	/// <summary>
-	///     The display omits the modifiers of interface members.
+	///     The display omits the accessibility and the modifiers of interface members.
 	/// </summary>
-	private static string InterfaceModifiers(ISymbol member) => member switch
+	private static string InterfaceModifiers(ISymbol member)
 	{
-		{ ContainingType.TypeKind: not TypeKind.Interface, } or { IsStatic: false, } => "",
-		{ IsAbstract: true, } => "static abstract ",
-		{ IsVirtual: true, } => "static virtual ",
-		_ => "static ",
-	};
+		if (member.ContainingType.TypeKind != TypeKind.Interface)
+		{
+			return "";
+		}
+
+		string accessibility = member.DeclaredAccessibility switch
+		{
+			Accessibility.Protected => "protected ",
+			Accessibility.ProtectedOrInternal => "protected internal ",
+			_ => "",
+		};
+		return accessibility + member switch
+		{
+			IFieldSymbol { IsConst: true, } => "",
+			{ IsStatic: true, IsAbstract: true, } => "static abstract ",
+			{ IsStatic: true, IsVirtual: true, } => "static virtual ",
+			{ IsStatic: true, } => "static ",
+			{ IsAbstract: false, IsVirtual: false, } => "sealed ",
+			_ => "",
+		};
+	}
 
 	/// <summary>
 	///     The display does not include the attributes of the accessors, which are inserted before their keywords.
@@ -476,9 +523,15 @@ public static class PublicApiWriter
 			return header;
 		}
 
-		string typeParameters = "<" + string.Join(", ", method.TypeParameters.Select(p => p.Name)) + ">";
+		string typeParameters = "<" + string.Join(", ", method.TypeParameters.Select(TypeParameterName)) + ">";
 		return header.Remove(header.Length - typeParameters.Length) + TypeParameterList(method.TypeParameters);
 	}
+
+	/// <summary>
+	///     The name of a type parameter, escaped like in the display, e.g. <c>@class</c>.
+	/// </summary>
+	private static string TypeParameterName(ITypeParameterSymbol typeParameter)
+		=> typeParameter.ToDisplayString(TypeNameFormat);
 
 	private static string TypeParameterList(IReadOnlyCollection<ITypeParameterSymbol> typeParameters)
 		=> typeParameters.Count == 0
@@ -490,25 +543,35 @@ public static class PublicApiWriter
 					VarianceKind.In => "in ",
 					VarianceKind.Out => "out ",
 					_ => "",
-				} + typeParameter.Name)) + ">";
+				} + TypeParameterName(typeParameter))) + ">";
 
 	private static string Parameter(IParameterSymbol parameter, bool isThis)
-		=> string.Concat(Attributes(parameter).Select(attribute => $"[{attribute}] ")) +
-		   (isThis ? "this " : "") + QualifyEnumDefaultValue(parameter, parameter.ToDisplayString(MemberFormat));
+	{
+		string declaration = parameter.ToDisplayString(MemberFormat);
+		return string.Concat(Attributes(parameter).Select(attribute => $"[{attribute}] ")) +
+		       (isThis ? "this " : "") +
+		       (parameter.HasExplicitDefaultValue
+			       ? ConstantValue(parameter.Type, parameter.ExplicitDefaultValue, declaration)
+			       : declaration);
+	}
 
 	/// <summary>
-	///     The display writes the members of an enum in a default value without their type, e.g. <c>Rock</c>.
+	///     The display writes a special floating-point value without its type, e.g. <c>NaN</c>, and the members of an enum
+	///     in a default or constant value without their type, e.g. <c>Rock</c>.
 	/// </summary>
-	private static string QualifyEnumDefaultValue(IParameterSymbol parameter, string declaration)
+	private static string ConstantValue(ITypeSymbol valueType, object? value, string declaration)
 	{
-		ITypeSymbol valueType = parameter.Type is INamedTypeSymbol
+		if (SpecialFloatingPointValue(value) is { } special)
 		{
-			OriginalDefinition.SpecialType: SpecialType.System_Nullable_T,
-		} nullable
-			? nullable.TypeArguments[0]
-			: parameter.Type;
-		if (valueType is not INamedTypeSymbol { TypeKind: TypeKind.Enum, } type ||
-		    !parameter.HasExplicitDefaultValue || parameter.ExplicitDefaultValue is null)
+			return declaration.Remove(declaration.LastIndexOf(" = ", StringComparison.Ordinal) + 3) + special;
+		}
+
+		if (valueType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T, } nullable)
+		{
+			valueType = nullable.TypeArguments[0];
+		}
+
+		if (valueType is not INamedTypeSymbol { TypeKind: TypeKind.Enum, } type)
 		{
 			return declaration;
 		}
@@ -520,10 +583,21 @@ public static class PublicApiWriter
 			.Select(name => type.MemberNames.Contains(name) ? $"{typeName}.{name}" : name));
 	}
 
+	private static string? SpecialFloatingPointValue(object? value) => value switch
+	{
+		double.NaN => "double.NaN",
+		double.PositiveInfinity => "double.PositiveInfinity",
+		double.NegativeInfinity => "double.NegativeInfinity",
+		float.NaN => "float.NaN",
+		float.PositiveInfinity => "float.PositiveInfinity",
+		float.NegativeInfinity => "float.NegativeInfinity",
+		_ => null,
+	};
+
 	private static int Rank(ISymbol member) => member switch
 	{
 		IFieldSymbol => 0,
-		IMethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor, } => 1,
+		IMethodSymbol { MethodKind: MethodKind.Constructor, } => 1,
 		IPropertySymbol => 2,
 		IEventSymbol => 3,
 		IMethodSymbol { MethodKind: MethodKind.UserDefinedOperator or MethodKind.Conversion, } => 5,
@@ -566,7 +640,7 @@ public static class PublicApiWriter
 				baseTypes.Add(type.BaseType.ToDisplayString(MemberFormat));
 			}
 
-			baseTypes.AddRange(type.Interfaces.Select(i => i.ToDisplayString(MemberFormat))
+			baseTypes.AddRange(type.Interfaces.Where(IsVisibleType).Select(i => i.ToDisplayString(MemberFormat))
 				.OrderBy(i => i, StringComparer.Ordinal));
 		}
 
@@ -616,7 +690,7 @@ public static class PublicApiWriter
 
 			if (constraints.Count > 0)
 			{
-				sb.Append(" where ").Append(typeParameter.Name).Append(" : ").Append(string.Join(", ", constraints));
+				sb.Append(" where ").Append(TypeParameterName(typeParameter)).Append(" : ").Append(string.Join(", ", constraints));
 			}
 		}
 
@@ -645,6 +719,9 @@ public static class PublicApiWriter
 			         IMethodSymbol method => MethodAttributes(method),
 			         INamedTypeSymbol { DelegateInvokeMethod: { } invoke, } => Attributes(symbol)
 				         .Concat(ReturnAttributes(invoke)),
+			         IPropertySymbol { IsIndexer: true, MetadataName: not "Item", } indexer => Attributes(symbol)
+				         .Append($"System.Runtime.CompilerServices.IndexerName(\"{indexer.MetadataName}\")")
+				         .OrderBy(attribute => attribute, StringComparer.Ordinal),
 			         _ => Attributes(symbol),
 		         })
 		{
@@ -689,12 +766,16 @@ public static class PublicApiWriter
 	}
 
 	/// <remarks>
-	///     <c>ToCSharpString()</c> writes an array without its type, e.g. <c>{1, 2}</c>.
+	///     <c>ToCSharpString()</c> writes an array without its type, e.g. <c>{1, 2}</c>, and a special floating-point value
+	///     without its type, e.g. <c>NaN</c>.
 	/// </remarks>
-	private static string Value(TypedConstant constant)
-		=> constant is { Kind: TypedConstantKind.Array, IsNull: false, }
-			? $"new {constant.Type!.ToDisplayString(MemberFormat)} {{ {string.Join(", ", constant.Values.Select(Value))} }}"
-			: constant.ToCSharpString();
+	private static string Value(TypedConstant constant) => constant switch
+	{
+		{ Kind: TypedConstantKind.Array, IsNull: false, } =>
+			$"new {constant.Type!.ToDisplayString(MemberFormat)} {{ {string.Join(", ", constant.Values.Select(Value))} }}",
+		{ Kind: TypedConstantKind.Primitive, } when SpecialFloatingPointValue(constant.Value) is { } special => special,
+		_ => constant.ToCSharpString(),
+	};
 
 	/// <summary>
 	///     The build targets of aweXpect.Snapshots add the source roots of a test project as assembly metadata, which
