@@ -23,9 +23,10 @@ public sealed class ApiApprovalTests
 		"aweXpect.Snapshots.PublicApi",
 	];
 
-	[TestCaseSource(nameof(Builds))]
-	public async Task VerifyPublicApi((string assemblyName, string framework) build)
-		=> await MatchesPublicApiSnapshot(build.assemblyName, build.framework);
+	[Test]
+	[MethodDataSource(nameof(Builds))]
+	public async Task VerifyPublicApi(string assemblyName, string framework)
+		=> await MatchesPublicApiSnapshot(assemblyName, framework);
 
 	/// <summary>
 	///     Execute this test to update the expected public API to the current API surface.
@@ -40,7 +41,7 @@ public sealed class ApiApprovalTests
 			{
 				await MatchesPublicApiSnapshot(build.assemblyName, build.framework).Accepting(SnapshotAcceptance.All);
 			}
-			catch (AssertionException exception) when (exception.Message.Contains("Accepted snapshot"))
+			catch (FailException exception) when (exception.Message.Contains("Accepted snapshot"))
 			{
 				// An accepted snapshot still fails the expectation.
 			}
@@ -55,7 +56,7 @@ public sealed class ApiApprovalTests
 		=> That(Helper.GetAssemblyFile(framework, assemblyName))
 			.MatchesPublicApiSnapshot(callerMemberName: assemblyName).Named(framework);
 
-	private static IEnumerable<(string, string)> Builds()
+	public static IEnumerable<(string, string)> Builds()
 		=> AssemblyNames.SelectMany(assemblyName => Helper.GetTargetFrameworks()
 			.Select(framework => (assemblyName, framework)));
 }
