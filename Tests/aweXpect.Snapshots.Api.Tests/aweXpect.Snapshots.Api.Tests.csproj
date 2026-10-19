@@ -5,6 +5,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="System.Text.Json" />
 		<ProjectReference Include="..\..\Source\aweXpect.Snapshots\aweXpect.Snapshots.csproj"/>
 		<ProjectReference Include="..\..\Source\aweXpect.Snapshots.PublicApi\aweXpect.Snapshots.PublicApi.csproj"/>
 		<ProjectReference Include="..\..\Source\aweXpect.Snapshots.DiffEngine\aweXpect.Snapshots.DiffEngine.csproj"/>

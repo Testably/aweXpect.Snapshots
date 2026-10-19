@@ -6,6 +6,7 @@
 	-->
 
 	<ItemGroup>
+		<PackageReference Include="System.Text.Json" />
 		<ProjectReference Include="..\..\Source\aweXpect.Snapshots\aweXpect.Snapshots.csproj"/>
 	</ItemGroup>
 

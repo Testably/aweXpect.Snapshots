@@ -12,6 +12,7 @@
 	<ItemGroup>
 		<PackageReference Include="aweXpect"/>
 		<PackageReference Include="BenchmarkDotNet"/>
+		<PackageReference Include="System.Text.Json" VersionOverride="10.0.13" />
 	</ItemGroup>
 
 	<ItemGroup>
