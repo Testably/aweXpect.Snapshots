@@ -18,6 +18,7 @@
 	    The package fixture is only built, as referencing it would copy its packages into the output of the tests.
 	-->
 	<ItemGroup>
+		<PackageReference Include="System.Text.Json" />
 		<ProjectReference Include="..\aweXpect.Snapshots.PublicApi.PackageFixture\aweXpect.Snapshots.PublicApi.PackageFixture.csproj"
 		                  ReferenceOutputAssembly="false" PrivateAssets="all"/>
 		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
