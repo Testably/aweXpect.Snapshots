@@ -1,5 +1,9 @@
 # aweXpect.Snapshots
 
+> [!IMPORTANT]
+> This repository is archived. From version 4.0.0 on, the packages `aweXpect.Snapshots`, `aweXpect.Snapshots.DiffEngine` and `aweXpect.Snapshots.PublicApi` are developed in the [aweXpect repository](https://github.com/Testably/aweXpect/tree/main/Source) and released together with aweXpect, under the same package names on NuGet.
+> The documentation is at [docs.testably.org](https://docs.testably.org/aweXpect/extensions/aweXpect.Snapshots/). Please open issues and pull requests in the [aweXpect repository](https://github.com/Testably/aweXpect).
+
 [![Nuget](https://img.shields.io/nuget/v/aweXpect.Snapshots)](https://www.nuget.org/packages/aweXpect.Snapshots)
 [![Build](https://github.com/Testably/aweXpect.Snapshots/actions/workflows/build.yml/badge.svg)](https://github.com/Testably/aweXpect.Snapshots/actions/workflows/build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Testably_aweXpect.Snapshots&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Testably_aweXpect.Snapshots)
